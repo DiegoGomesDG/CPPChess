@@ -12,7 +12,7 @@ extern const int WIN_HEIGHT = 8 * SQUARE_SIZE + 2 * BORDER_SIZE;
 /* ##### Board Properties ##### */
 const SDL_Color WHITE_SQUARE = {0xEC, 0xDA, 0xB9, 0xFF};
 const SDL_Color BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
-const SDL_Color BKGD_COLOR = {0xA4, 0x74, 0x49, 0xFF};
+const SDL_Color BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
 
 /* ##### Texture ##### */
 Texture whitePieces[7];

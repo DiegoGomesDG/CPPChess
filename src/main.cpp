@@ -23,7 +23,7 @@ int main(int argc, char* args[]) {
 	SDL_RenderClear( board.getRenderer() );
 	
 	// Draw Brown Background
-	SDL_SetRenderDrawColor( board.getRenderer(), 0xA4, 0x74, 0x49, 0xFF );
+	SDL_SetRenderDrawColor( board.getRenderer(), 0x16, 0x15, 0x12, 0xFF );
 	SDL_Rect bkgdRect = {0, 0, WIN_WIDTH, WIN_HEIGHT};
 	SDL_RenderFillRect(board.getRenderer(), &bkgdRect);
 	
@@ -33,9 +33,9 @@ int main(int argc, char* args[]) {
 		for (int rank = 0; rank < 8; ++rank) {
 			SDL_Rect fillRect = {SQUARE_SIZE * column + BORDER_SIZE -1, SQUARE_SIZE * rank + BORDER_SIZE -1, SQUARE_SIZE, SQUARE_SIZE};
 			if ((rank+column) % 2 == 0)
-				SDL_SetRenderDrawColor( board.getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF );
+				SDL_SetRenderDrawColor( board.getRenderer(), 0xEC, 0xDA, 0xB9, 0xFF );
 			else
-				SDL_SetRenderDrawColor( board.getRenderer(), 0x00, 0x00, 0x00, 0xFF );
+				SDL_SetRenderDrawColor( board.getRenderer(), 0xAE, 0x8A, 0x68, 0xFF );
 			
 			SDL_RenderFillRect( board.getRenderer(), &fillRect);
 			
@@ -44,7 +44,29 @@ int main(int argc, char* args[]) {
 		}
 	}
 	
-	whitePieces[5].renderTexture(board.getRenderer(), 29 + 90, 29 + 90);
+	for (int i = 0; i < 8; ++i) {
+		whitePieces[1].renderTexture(board.getRenderer(), 29 + 90 * i, 29 + 90 * 6);
+		blackPieces[1].renderTexture(board.getRenderer(), 29 + 90 * i, 29 + 90 * 1);
+	}
+
+	whitePieces[6].renderTexture(board.getRenderer(), 29 + 90 * 4, 29 + 90 * 7);
+	whitePieces[5].renderTexture(board.getRenderer(), 29 + 90 * 3, 29 + 90 * 7);
+	whitePieces[2].renderTexture(board.getRenderer(), 29 + 90 * 1, 29 + 90 * 7);
+	whitePieces[2].renderTexture(board.getRenderer(), 29 + 90 * 6, 29 + 90 * 7);
+	whitePieces[3].renderTexture(board.getRenderer(), 29 + 90 * 2, 29 + 90 * 7);
+	whitePieces[3].renderTexture(board.getRenderer(), 29 + 90 * 5, 29 + 90 * 7);
+	whitePieces[4].renderTexture(board.getRenderer(), 29 + 90 * 0, 29 + 90 * 7);
+	whitePieces[4].renderTexture(board.getRenderer(), 29 + 90 * 7, 29 + 90 * 7);
+	
+	blackPieces[6].renderTexture(board.getRenderer(), 29 + 90 * 4, 29 + 90 * 0);
+	blackPieces[5].renderTexture(board.getRenderer(), 29 + 90 * 3, 29 + 90 * 0);
+	blackPieces[2].renderTexture(board.getRenderer(), 29 + 90 * 1, 29 + 90 * 0);
+	blackPieces[2].renderTexture(board.getRenderer(), 29 + 90 * 6, 29 + 90 * 0);
+	blackPieces[3].renderTexture(board.getRenderer(), 29 + 90 * 2, 29 + 90 * 0);
+	blackPieces[3].renderTexture(board.getRenderer(), 29 + 90 * 5, 29 + 90 * 0);
+	blackPieces[4].renderTexture(board.getRenderer(), 29 + 90 * 0, 29 + 90 * 0);
+	blackPieces[4].renderTexture(board.getRenderer(), 29 + 90 * 7, 29 + 90 * 0);
+	
 
 	//Update screen
 	SDL_RenderPresent(board.getRenderer());
