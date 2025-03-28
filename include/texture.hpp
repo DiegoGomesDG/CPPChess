@@ -1,0 +1,27 @@
+#ifndef TEXTURE_H
+#define TEXTURE_H
+
+/* ##### SDL Include ##### */
+#include <SDL2/SDL.h>
+#include <SDL2_image/SDL_image.h>
+
+/* ##### Project Files ##### */
+
+/* ##### Libraries ##### */
+#include <iostream>
+
+class Texture {
+    private:
+        SDL_Texture * texture;
+        int width;
+        int height;
+    public:
+        Texture();
+        ~Texture();
+        bool loadTexture(std::string path, SDL_Renderer * renderer);
+        void renderTexture(SDL_Renderer * renderer, int x, int y);
+        int getWidth();
+        int getHeight();
+};
+
+#endif

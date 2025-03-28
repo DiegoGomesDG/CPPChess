@@ -6,7 +6,7 @@ PROJECT_EXE = cppchess
 DIR_SRC = src
 DIR_HEADERS = include
 DIR_OBJS = obj
-DIR_BUILD = build/debug
+DIR_BUILD = build
 
 ########## Compiler ##########
 CC = g++
