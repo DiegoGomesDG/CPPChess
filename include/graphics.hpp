@@ -11,15 +11,16 @@
 
 /* ##### Libraries ##### */
 
-
 extern Texture whitePieces[7];
 extern Texture blackPieces[7];
+
 
 /* ##### Class #####*/
 class Graphics {
     private:
         SDL_Window * window;
         SDL_Renderer * renderer;
+        static bool instantiated; /* https://gameprogrammingpatterns.com/singleton.html */
     public:
         /* RAII Technique - Resource Acquisition Is Initialization */
         Graphics();
@@ -28,5 +29,6 @@ class Graphics {
         SDL_Window * getWindow();
         SDL_Renderer * getRenderer();
 };
+
 
 #endif

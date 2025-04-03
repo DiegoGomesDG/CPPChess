@@ -1,17 +1,31 @@
 #ifndef PIECE_H
 #define PIECE_H
 
-/* Representing the Piece in Binary:
-- First two digits: color
-- Remaining 3 digits: type */
-enum PieceType {Empty, Pawn, Knight, Bishop, Rook, Queen, King};
-const int White = 8;
-const int Black = 16;
+enum class Color {White, Black};
+enum class PieceType {Empty, Pawn, Knight, Bishop, Rook, Queen, King};
+
 
 class Piece {
+
     protected:
-        
+        int position;
+        Color color;
+        PieceType type;
+
+        /* Protected Constructor*/
+        Piece(Color color, PieceType type, int position) : position(position), color(color), type(type) {}
+
     public:
+        // virtual void possibleMoves();
+        // virtual bool isValidMove();
+
+        /* Virtual Destructor */
+        // virtual ~Piece();
+
+        /* Getters */
+        int getPosition() const {return position;}
+        Color getColor() const {return color;}
+        PieceType getType() const {return type;};
 };
 
 

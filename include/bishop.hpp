@@ -5,6 +5,8 @@
 
 class Bishop : public Piece {
 
+    public:
+        Bishop(Color color, int position) : Piece(color, PieceType::Bishop, position) {}
 };
 
 #endif

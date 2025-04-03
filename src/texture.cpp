@@ -1,9 +1,9 @@
 #include "texture.hpp"
 
 Texture::Texture() {
-    this->texture = NULL;
-    this->width = 0;
-    this->height = 0;
+    mTexture = NULL;
+    mWidth = 0;
+    mHeight = 0;
 }
 
 Texture::~Texture() {
@@ -26,20 +26,29 @@ bool Texture::loadTexture(std::string path, SDL_Renderer * renderer) {
 		if (newTexture == NULL) {
             std::cerr << "Unable to create texture from " << path.c_str() << "!" << "SDL Error" << SDL_GetError() << std::endl;
 		} else {
-			this->width = loadedSurface->w;
-			this->height = loadedSurface->h;
+			mWidth = loadedSurface->w;
+			mHeight = loadedSurface->h;
 		}
 
 		//Get rid of old loaded surface
 		SDL_FreeSurface(loadedSurface);
 	}
 
-	this->texture = newTexture;
+	this->mTexture = newTexture;
 	
-	return texture != NULL;
+	return mTexture != NULL;
 }
 
 void Texture::renderTexture(SDL_Renderer * renderer, int x, int y) {
 	SDL_Rect renderQuad = {x, y, 90, 90}; // Change 90 to a variable
-	SDL_RenderCopy(renderer, this->texture, NULL, &renderQuad);
+	SDL_RenderCopy(renderer, this->mTexture, NULL, &renderQuad);
+}
+
+
+int Texture::getWidth() const {
+	return mWidth;
+}
+
+int Texture::getHeight() const {
+	return mHeight;
 }

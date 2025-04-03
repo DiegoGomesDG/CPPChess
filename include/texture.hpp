@@ -12,16 +12,16 @@
 
 class Texture {
     private:
-        SDL_Texture * texture;
-        int width;
-        int height;
+        SDL_Texture * mTexture;
+        int mWidth;
+        int mHeight;
     public:
         Texture();
         ~Texture();
         bool loadTexture(std::string path, SDL_Renderer * renderer);
         void renderTexture(SDL_Renderer * renderer, int x, int y);
-        int getWidth();
-        int getHeight();
+        int getWidth() const;
+        int getHeight() const;
 };
 
 #endif
