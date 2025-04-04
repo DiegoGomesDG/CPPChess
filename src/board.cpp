@@ -4,6 +4,7 @@
 /* Include other defined headers */
 #include "board.hpp"
 
+
 /* Include each piece type*/
 #include "king.hpp"
 #include "queen.hpp"
@@ -15,7 +16,7 @@
 
 
 /* 1D Array Board Indexes
-    00 01 02 03 04 05 06 07
+   |00|01|02|03|04|05|06|07
 07| 56 57 58 59 60 61 62 63 
 06| 48 49 50 51 52 53 54 55
 05| 40 41 42 43 44 45 46 47
@@ -53,8 +54,15 @@ Board::Board() {
 }
 
 Board::~Board() {
+    clearBoard();
+}
+
+void Board::clearBoard() {
     for (int i = 0; i < 64; ++i) {
         delete board[i];
+        board[i] = NULL;
+        whiteOccupation[i] = 0;
+        blackOccupation[i] = 0;
     }
 }
 
@@ -72,7 +80,7 @@ Piece* Board::createPiece(PieceType type, Color color, int position) {
 
 /* https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation */
 bool Board::loadFromFEN(const std::string & fen) {
-    
+    clearBoard();
     int row = 7; /* Starts from the 8th row/rank */
     int col = 0; /* Starts from the 0th column/file */
 

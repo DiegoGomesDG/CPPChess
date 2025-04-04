@@ -24,8 +24,10 @@ class Piece {
 
         /* Getters */
         int getPosition() const {return position;}
+        int getRow() const {return position / 8;}
+        int getColumn() const {return position % 8;}
         Color getColor() const {return color;}
-        PieceType getType() const {return type;};
+        PieceType getType() const {return type;}
 };
 
 

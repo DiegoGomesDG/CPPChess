@@ -1,21 +1,27 @@
 #include "graphics.hpp"
 
+/* Defined Headers */
+#include "board.hpp"
+#include "piece.hpp"
+
+
 /* ##### Libraries ##### */
 #include <iostream>
 #include <cassert>
 
 /* ##### Window properties according to the size of the board ##### */
-extern const int SQUARE_SIZE = 90;
-extern const int BORDER_SIZE = 45;
+extern const int SQUARE_SIZE = 90; /* Suggested: 90 */
+extern const int BORDER_SIZE = 45; /* Suggested: 45 */
 extern const int WIN_WIDTH = 8 * SQUARE_SIZE + 2 * BORDER_SIZE;
 extern const int WIN_HEIGHT = 8 * SQUARE_SIZE + 2 * BORDER_SIZE;
 
-/* ##### Board Properties ##### */
+/* ##### Board Color Properties ##### */
 const SDL_Color WHITE_SQUARE = {0xEC, 0xDA, 0xB9, 0xFF};
 const SDL_Color BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
 const SDL_Color BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
+const SDL_Color HIGHLIGHT = {0x7F, 0x17, 0x1F, 0x80};
 
-/* ##### Texture ##### */
+/* ##### Global Texture ##### */
 Texture whitePieces[7];
 Texture blackPieces[7];
 Texture moveDot;
@@ -54,7 +60,7 @@ Graphics::Graphics() {
     float scaleY = physH / static_cast <float> (WIN_HEIGHT);  // 600 = logical height
 
     /* Create RENDERER for the Window*/
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
     if(renderer == NULL) {
         std::cerr << "Renderer could not be created! SDL Error: " << SDL_GetError();
@@ -93,53 +99,53 @@ bool Graphics::loadMedia() {
     /* ##### White Pieces ##### */
     /* loadTexture returns true if it is successful, false otherwise. So if it is not true, it means it failed*/
 
-    if(!whitePieces[(int) PieceType::Pawn].loadTexture("../assets/white/WhitePawn.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/white/WhitePawn.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[(int) PieceType::Knight].loadTexture("../assets/white/WhiteKnight.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/white/WhiteKnight.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[(int) PieceType::Bishop].loadTexture("../assets/white/WhiteBishop.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/white/WhiteBishop.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[(int) PieceType::Rook].loadTexture("../assets/white/WhiteRook.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/white/WhiteRook.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[(int) PieceType::Queen].loadTexture("../assets/white/WhiteQueen.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/white/WhiteQueen.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[(int) PieceType::King].loadTexture("../assets/white/WhiteKing.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::King)].loadTexture("../assets/white/WhiteKing.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
     
     /* ##### Black Pieces ##### */
-    if(!blackPieces[(int) PieceType::Pawn].loadTexture("../assets/black/BlackPawn.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/black/BlackPawn.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[(int) PieceType::Knight].loadTexture("../assets/black/BlackKnight.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/black/BlackKnight.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[(int) PieceType::Bishop].loadTexture("../assets/black/BlackBishop.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/black/BlackBishop.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[(int) PieceType::Rook].loadTexture("../assets/black/BlackRook.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/black/BlackRook.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[(int) PieceType::Queen].loadTexture("../assets/black/BlackQueen.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/black/BlackQueen.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[(int) PieceType::King].loadTexture("../assets/black/BlackKing.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::King)].loadTexture("../assets/black/BlackKing.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
@@ -165,11 +171,73 @@ bool Graphics::loadMedia() {
     return success;
 }
 
-SDL_Window * Graphics::getWindow() {
-    return window;
+void Graphics::clearWindow() {
+    SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
+    SDL_RenderClear(renderer);
 }
 
-SDL_Renderer * Graphics::getRenderer() {
-    return renderer;
+void Graphics::updateWindow() {
+    SDL_RenderPresent(renderer);
 }
 
+void Graphics::renderBoard() {
+    SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
+    SDL_RenderClear(renderer);
+
+    for (int column = 0; column < 8; ++column) {
+		for (int row = 0; row < 8; ++row) {
+			SDL_Rect fillRect = {SQUARE_SIZE * column + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+			if ((row + column) % 2 == 0)
+				SDL_SetRenderDrawColor(renderer, WHITE_SQUARE.r, WHITE_SQUARE.g, WHITE_SQUARE.b, WHITE_SQUARE.a);
+			else
+				SDL_SetRenderDrawColor(renderer, BLACK_SQUARE.r, BLACK_SQUARE.g, BLACK_SQUARE.b, BLACK_SQUARE.a);
+			
+			SDL_RenderFillRect(renderer, &fillRect);
+
+		}
+	}
+}
+
+void Graphics::renderPieces(const Board & board) {
+    
+    for (int i = 0; i < 64; i++) {
+		Color color;
+		PieceType piece;
+		int row;
+		int column;
+
+		if(board.board[i] != NULL) {
+			color = board.board[i]->getColor();
+			piece = board.board[i]->getType();
+			row = indexToRow(board.board[i]->getPosition());
+			column = indexToColumn(board.board[i]->getPosition());
+			int pieceID = static_cast<int>(piece);
+			// std::cout << "Index:" << i << "   Piece ID: " << pieceID << ". Color: " << (int)color << " Row: " << row << " Col: " << column << std::endl;
+
+			row = 7 - row; /* Invert */
+			
+			if (color == Color::White)
+				whitePieces[pieceID].renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * column, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+			
+			if (color == Color::Black)
+				blackPieces[pieceID].renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * column, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+	    }
+
+    }
+}
+
+/* https://gigi.nullneuron.net/gigilabs/sdl2-drag-and-drop/?fbclid=IwY2xjawJcp9dleHRuA2FlbQIxMAABHVwbudUFVEK3WEu3RsJArnH2_GUbucPv5NFXbvub048pgzXka-PFcwqrIg_aem_hUfSUIs5p6Sm0uZ4gBEfHg */
+void Graphics::dragPiece(const Board & board, int index, int mouseX, int mouseY) {
+
+    Color color;
+	PieceType piece;
+    color = board.board[index]->getColor();
+	piece = board.board[index]->getType();
+    int pieceID = static_cast<int>(piece);
+
+    if (color == Color::White)
+		whitePieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
+			
+	if (color == Color::Black)
+		blackPieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
+}

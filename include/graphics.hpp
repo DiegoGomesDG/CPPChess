@@ -5,14 +5,12 @@
 #include <SDL2/SDL.h>
 #include <SDL2_image/SDL_image.h>
 
-/* ##### Project Files ##### */
+/* ##### Class Forward Declaration ##### */
+class Board;
+
+/* ##### Local headers ##### */
 #include "texture.hpp"
-#include "piece.hpp"
-
-/* ##### Libraries ##### */
-
-extern Texture whitePieces[7];
-extern Texture blackPieces[7];
+#include "graphics.hpp"
 
 
 /* ##### Class #####*/
@@ -26,8 +24,14 @@ class Graphics {
         Graphics();
         ~Graphics();
         bool loadMedia();
-        SDL_Window * getWindow();
-        SDL_Renderer * getRenderer();
+        SDL_Window * getWindow() const {return window;};
+        SDL_Renderer * getRenderer() const {return renderer;};
+
+        void clearWindow();
+        void updateWindow();
+        void renderBoard();
+        void renderPieces(const Board & board);
+        void dragPiece(const Board & board, int index, int mouseX, int mouseY);
 };
 
 

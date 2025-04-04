@@ -7,47 +7,19 @@ extern int BORDER_SIZE;
 extern int WIN_WIDTH;
 extern int WIN_HEIGHT;
 
-
 //Using SDL, SDL_image, standard IO, math, and strings
 #include <SDL2/SDL.h>
-
-extern Texture whitePieces[7];
-extern Texture moveDot;
-extern Texture kingInCheck;
-extern Texture capture;
 
 int main(int argc, char* argv[]) {
 	//Start up SDL and create window
 	Graphics boardGUI;
 	boardGUI.loadMedia();
-
 	//Clear screen
-	SDL_SetRenderDrawColor( boardGUI.getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF );
-	SDL_RenderClear( boardGUI.getRenderer() );
-	
+	boardGUI.clearWindow();
 	// Draw Brown Background
-	SDL_SetRenderDrawColor( boardGUI.getRenderer(), 0x16, 0x15, 0x12, 0xFF );
-	SDL_Rect bkgdRect = {0, 0, WIN_WIDTH, WIN_HEIGHT};
-	SDL_RenderFillRect(boardGUI.getRenderer(), &bkgdRect);
-	
 	// Draw Chess board
-	SDL_SetRenderDrawColor( boardGUI.getRenderer(), 0xFF, 0xFF, 0xFF, 0xFF );
-	for (int column = 0; column < 8; ++column) {
-		for (int rank = 0; rank < 8; ++rank) {
-			SDL_Rect fillRect = {SQUARE_SIZE * column + BORDER_SIZE -1, SQUARE_SIZE * rank + BORDER_SIZE -1, SQUARE_SIZE, SQUARE_SIZE};
-			if ((rank+column) % 2 == 0)
-				SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0xEC, 0xDA, 0xB9, 0xFF);
-			else
-				SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0xAE, 0x8A, 0x68, 0xFF);
-			
-			SDL_RenderFillRect( boardGUI.getRenderer(), &fillRect);
-			
-			SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0xFF, 0x00, 0x00, 0xFF );
-			
-			
-		}
-	}
-	
+	boardGUI.renderBoard();
+
 	Board board;
 	std::string fen;
 	if (argc > 1) {
@@ -57,67 +29,109 @@ int main(int argc, char* argv[]) {
 	}
 
 	board.loadFromFEN(fen);
-
-	for (int i = 0; i < 64; i++) {
-		Color color;
-		PieceType piece;
-		int row;
-		int column;
-
-		if(board.board[i] != NULL) {
-			color = board.board[i]->getColor();
-			piece = board.board[i]->getType();
-			row = indexToRow(board.board[i]->getPosition());
-			column = indexToColumn(board.board[i]->getPosition());
-			int pieceID = static_cast<int>(piece);
-			std::cout << "Index:" << i << "   Piece ID: " << pieceID << ". Color: " << (int)color << " Row: " << row << " Col: " << column << std::endl;
-
-			row = 7 - row;
-			
-			if (color == Color::White) {
-				whitePieces[pieceID].renderTexture(boardGUI.getRenderer(), BORDER_SIZE - 1 + 90 * column, BORDER_SIZE - 1 + 90 * row);
-			}
-			if (color == Color::Black) {
-				blackPieces[pieceID].renderTexture(boardGUI.getRenderer(), BORDER_SIZE - 1 + 90 * column, BORDER_SIZE - 1 + 90 * row);
-			}
-
-	}
-
-	}
+	boardGUI.renderPieces(board);
 
 	//Update screen
-	SDL_RenderPresent(boardGUI.getRenderer());
+	boardGUI.updateWindow();
 
 	SDL_Event e;
 	bool quit = false;
+	bool leftMouseButtonDown = false;
+	SDL_Point mousePos;
+	int focusRow, focusCol;
+	int index;
+
 	while(!quit) {
 			//Handle events on queue
-		while( SDL_PollEvent( &e ) != 0 ) {
-			//User requests quit
-			int x, y;
-			int row, column;
-			if( e.type == SDL_QUIT ) {
+		while(SDL_PollEvent(&e) != 0) {
+			if(e.type == SDL_QUIT) {
 				quit = true;
 			}
 
-			if (e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONUP) {
-				
-        		SDL_GetMouseState(&x, &y);
-				
-				if ((x > BORDER_SIZE - 1) && (x < WIN_WIDTH - BORDER_SIZE) && (y > BORDER_SIZE - 1) && (y < WIN_HEIGHT - BORDER_SIZE)) {
-					row = (y - BORDER_SIZE) / SQUARE_SIZE;
-					column = (x - BORDER_SIZE) / SQUARE_SIZE;
-					
-				} else {
-					row = -1;
-					column = -1;
+			if(e.type == SDL_MOUSEMOTION) {
+				mousePos = {e.motion.x, e.motion.y};
+				if(leftMouseButtonDown && board.board[index] != NULL) {
+					boardGUI.clearWindow();
+						boardGUI.renderBoard();
+						boardGUI.renderPieces(board);
+						
+						SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0x7F, 0x17, 0x1F, 0x80);
+						SDL_Rect highlRect = {SQUARE_SIZE * focusCol + BORDER_SIZE - 1, SQUARE_SIZE * focusRow + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+						SDL_RenderFillRect(boardGUI.getRenderer(), &highlRect);
+							
+						boardGUI.dragPiece(board, index, mousePos.x, mousePos.y);
+						boardGUI.updateWindow();
 				}
-				// std::cout << "Row: " << row << std::endl;
-				// std::cout << "Column: " << column << std::endl;
+			}
+
+			if(e.type == SDL_MOUSEBUTTONUP) {
+				if(leftMouseButtonDown && e.button.button == SDL_BUTTON_LEFT) {
+					leftMouseButtonDown = false;
+
+					if(index > -1) {
+						if(board.board[index] != NULL) {
+							boardGUI.clearWindow();
+							boardGUI.renderBoard();
+
+							SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0x7F, 0x17, 0x1F, 0x80);
+							SDL_Rect highlRect = {SQUARE_SIZE * focusCol + BORDER_SIZE - 1, SQUARE_SIZE * focusRow + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+							SDL_RenderFillRect(boardGUI.getRenderer(), &highlRect);
+							
+							boardGUI.renderPieces(board);
+							boardGUI.updateWindow();
+						} else {
+							boardGUI.clearWindow();
+							boardGUI.renderBoard();
+							boardGUI.renderPieces(board);
+							boardGUI.updateWindow();
+						}
+					}
+				}
+			}
+
+			if(e.type == SDL_MOUSEBUTTONDOWN) {
+				if (!leftMouseButtonDown && e.button.button == SDL_BUTTON_LEFT) {
+					leftMouseButtonDown = true;
+					if(mousePos.x < (WIN_WIDTH + BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT + BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
+						focusCol = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
+						focusRow = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
+					} else {
+						focusCol = -1;
+						focusRow = -1;
+					}
+					if (focusRow >= 0 && focusCol >= 0)
+						index = squareToIndex(7 - focusRow, focusCol);
+					else {
+						index = -1;
+					}
+					std::cout << "Focus: " << focusCol << " " << focusRow << " Index: " << index << std::endl;
+
+					if(index > -1) {
+						if(board.board[index] != NULL) {
+							boardGUI.clearWindow();
+							boardGUI.renderBoard();
+
+							SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0x7F, 0x17, 0x1F, 0x80);
+							SDL_Rect highlRect = {SQUARE_SIZE * focusCol + BORDER_SIZE - 1, SQUARE_SIZE * focusRow + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+							SDL_RenderFillRect(boardGUI.getRenderer(), &highlRect);
+							
+							boardGUI.renderPieces(board);
+							boardGUI.updateWindow();
+						} else {
+							boardGUI.clearWindow();
+							boardGUI.renderBoard();
+							boardGUI.renderPieces(board);
+							boardGUI.updateWindow();
+						}
+					}
+
+				}
 			}
 			
 		}
+
 	}
 
 	return 0;
+
 }
