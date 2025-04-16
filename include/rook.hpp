@@ -1,7 +1,8 @@
 #ifndef ROOK_H
 #define ROOK_H
 
-#include "piece.hpp"
+/* ##### Project Headers ##### */
+#include "Piece.hpp"
 
 class Rook : public Piece {
     private:

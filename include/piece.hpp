@@ -4,7 +4,6 @@
 enum class Color {White, Black};
 enum class PieceType {Empty, Pawn, Knight, Bishop, Rook, Queen, King};
 
-
 class Piece {
 
     protected:

@@ -1,7 +1,8 @@
 #ifndef KING_H
 #define KING_H
 
-#include "piece.hpp"
+/* ##### Project Headers ##### */
+#include "Piece.hpp"
 
 class King : public Piece {
     private:
@@ -10,7 +11,9 @@ class King : public Piece {
         bool inCheck;
         bool hasMoved;
     public:
-        King(Color color, int position) : Piece(color, PieceType::King, position) {}
+        King(Color color, int position);
+        void setKingSideCastleRight(bool state);
+        void setQueenSideCastleRight(bool state);
 };
 
 #endif

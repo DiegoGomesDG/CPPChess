@@ -1,6 +1,6 @@
-#include "../include/graphics.hpp"
-#include "../include/board.hpp"
-#include "../include/texture.hpp"
+#include "../include/Graphics.hpp"
+#include "../include/Board.hpp"
+#include "../include/Texture.hpp"
 
 extern int SQUARE_SIZE;
 extern int BORDER_SIZE;
@@ -16,8 +16,6 @@ int main(int argc, char* argv[]) {
 	boardGUI.loadMedia();
 	//Clear screen
 	boardGUI.clearWindow();
-	// Draw Brown Background
-	// Draw Chess board
 	boardGUI.renderBoard();
 
 	Board board;
@@ -25,7 +23,7 @@ int main(int argc, char* argv[]) {
 	if (argc > 1) {
 		 fen = argv[1];
 	} else {
-		fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+		fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w";
 	}
 
 	board.loadFromFEN(fen);
@@ -41,6 +39,7 @@ int main(int argc, char* argv[]) {
 	int focusRow, focusCol;
 	int index;
 
+		/* TO DO: Transform this into a method in class graphics, that returns the destination square of the piece */
 	while(!quit) {
 			//Handle events on queue
 		while(SDL_PollEvent(&e) != 0) {
@@ -54,11 +53,7 @@ int main(int argc, char* argv[]) {
 					boardGUI.clearWindow();
 						boardGUI.renderBoard();
 						boardGUI.renderPieces(board);
-						
-						SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0x7F, 0x17, 0x1F, 0x80);
-						SDL_Rect highlRect = {SQUARE_SIZE * focusCol + BORDER_SIZE - 1, SQUARE_SIZE * focusRow + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
-						SDL_RenderFillRect(boardGUI.getRenderer(), &highlRect);
-							
+						boardGUI.highlightSquare(focusCol, focusRow);
 						boardGUI.dragPiece(board, index, mousePos.x, mousePos.y);
 						boardGUI.updateWindow();
 				}
@@ -73,9 +68,7 @@ int main(int argc, char* argv[]) {
 							boardGUI.clearWindow();
 							boardGUI.renderBoard();
 
-							SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0x7F, 0x17, 0x1F, 0x80);
-							SDL_Rect highlRect = {SQUARE_SIZE * focusCol + BORDER_SIZE - 1, SQUARE_SIZE * focusRow + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
-							SDL_RenderFillRect(boardGUI.getRenderer(), &highlRect);
+							boardGUI.highlightSquare(focusCol, focusRow);
 							
 							boardGUI.renderPieces(board);
 							boardGUI.updateWindow();
@@ -111,9 +104,7 @@ int main(int argc, char* argv[]) {
 							boardGUI.clearWindow();
 							boardGUI.renderBoard();
 
-							SDL_SetRenderDrawColor(boardGUI.getRenderer(), 0x7F, 0x17, 0x1F, 0x80);
-							SDL_Rect highlRect = {SQUARE_SIZE * focusCol + BORDER_SIZE - 1, SQUARE_SIZE * focusRow + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
-							SDL_RenderFillRect(boardGUI.getRenderer(), &highlRect);
+							boardGUI.highlightSquare(focusCol, focusRow);
 							
 							boardGUI.renderPieces(board);
 							boardGUI.updateWindow();

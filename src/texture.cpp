@@ -1,5 +1,5 @@
-#include "texture.hpp"
-#include "graphics.hpp"
+#include "Texture.hpp"
+#include "Graphics.hpp"
 
 extern int SQUARE_SIZE;
 

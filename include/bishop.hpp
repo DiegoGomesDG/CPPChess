@@ -1,7 +1,8 @@
 #ifndef BISHOP_H
 #define BISHOP_H
 
-#include "piece.hpp"
+/* ##### Project Headers ##### */
+#include "Piece.hpp"
 
 class Bishop : public Piece {
 

@@ -8,10 +8,12 @@
 /* ##### Class Forward Declaration ##### */
 class Board;
 
-/* ##### Local headers ##### */
-#include "texture.hpp"
-#include "graphics.hpp"
+/* ##### Project headers ##### */
+#include "Graphics.hpp"
 
+/* TEMPORARY: EXTERN FOR COL AND ROW */
+extern const int ROW;
+extern const int COL;
 
 /* ##### Class #####*/
 class Graphics {
@@ -30,7 +32,9 @@ class Graphics {
         void clearWindow();
         void updateWindow();
         void renderBoard();
+        void renderPiece(const Board & board, int index);
         void renderPieces(const Board & board);
+        void highlightSquare(int col, int row);
         void dragPiece(const Board & board, int index, int mouseX, int mouseY);
 };
 

@@ -1,7 +1,8 @@
 #ifndef QUEEN_H
 #define QUEEN_H
 
-#include "piece.hpp"
+/* ##### Project Headers ##### */
+#include "Piece.hpp"
 
 class Queen : public Piece {
     private:

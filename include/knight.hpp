@@ -1,7 +1,8 @@
 #ifndef KNIGHT_H
 #define KNIGHT_H
 
-#include "piece.hpp"
+/* ##### Project Headers ##### */
+#include "Piece.hpp"
 
 class Knight : public Piece {
     

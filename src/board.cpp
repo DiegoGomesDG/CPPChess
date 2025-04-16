@@ -1,19 +1,19 @@
 /* Standard Libraries */
 #include <cctype>
+#include <iostream>
 
 /* Include other defined headers */
 #include "board.hpp"
-
+#include "graphics.hpp"
 
 /* Include each piece type*/
-#include "king.hpp"
-#include "queen.hpp"
-#include "rook.hpp"
-#include "bishop.hpp"
-#include "knight.hpp"
-#include "pawn.hpp"
-#include "piece.hpp"
-
+#include "King.hpp"
+#include "Queen.hpp"
+#include "Rook.hpp"
+#include "Bishop.hpp"
+#include "Knight.hpp"
+#include "Pawn.hpp"
+#include "Piece.hpp"
 
 /* 1D Array Board Indexes
    |00|01|02|03|04|05|06|07
@@ -31,21 +31,21 @@ https://lichess.org/@/likeawizard/blog/review-of-different-board-representations
 */
 
 int squareToIndex(int row, int col) {
-    return row * 8 + col;
+    return row * COL + col;
 }
 
 int indexToRow(int index) {
-    return index / 8;
+    return index / ROW;
 }
 
 int indexToColumn(int index) {
-    return index % 8;
+    return index % COL;
 }
 
 Board::Board() {
     
     /* Set every pointer of board to NULL, ocupation board to 0 */
-    for (int i = 0; i < 64; ++i) {
+    for (int i = 0; i < ROW * COL; ++i) {
         board[i] = NULL;
         whiteOccupation[i] = 0;
         blackOccupation[i] = 0;
@@ -58,7 +58,7 @@ Board::~Board() {
 }
 
 void Board::clearBoard() {
-    for (int i = 0; i < 64; ++i) {
+    for (int i = 0; i < ROW * COL; ++i) {
         delete board[i];
         board[i] = NULL;
         whiteOccupation[i] = 0;
@@ -81,12 +81,25 @@ Piece* Board::createPiece(PieceType type, Color color, int position) {
 /* https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation */
 bool Board::loadFromFEN(const std::string & fen) {
     clearBoard();
-    int row = 7; /* Starts from the 8th row/rank */
+    
+    int row = (ROW - 1); /* Starts from the 8th row/rank */
     int col = 0; /* Starts from the 0th column/file */
 
     int strLen = fen.length();
     char c;
     int index;
+
+    /* Flags to read informations after the piece placement */
+    bool readTurn = true;
+    bool readCastlingRights = true;
+
+    /* Store turn information, change for a global variable later */
+    Color turn = Color::White; /* Default */
+
+    /* Store the address of the White and Black King to setup the castling rights LATER */
+    Piece * whiteKing = NULL;
+    Piece * blackKing = NULL;
+
     /* Some improvement will be needed if is desired to support full FERN, for now, only the 
     Piece Placement is supported, any extra character might result in misbehavior*/
     for(int i = 0; i < strLen; ++i) {
@@ -100,8 +113,23 @@ bool Board::loadFromFEN(const std::string & fen) {
             if((c - '0') > 0 && (c - '0') < 9) {
                 int emptySquares = c - '0';
                 col += emptySquares;
-                if(col > 7) col = 7; /* Prevent overflow */
+                if(col > (COL - 1)) col = COL - 1; /* Prevent overflow */
             }
+        }
+
+        else if (c == ' ' && readTurn) {
+            ++i;
+            c = fen[i];
+            switch (c) {
+                case 'w': {turn = Color::White;
+                            readTurn = false;
+                            break;}
+                case 'b': {turn = Color::Black;
+                            readTurn = false;
+                            break;}
+                default: return false;
+            }
+
         }
 
         else {
@@ -119,11 +147,13 @@ bool Board::loadFromFEN(const std::string & fen) {
             }
             index = squareToIndex(row, col);
             board[index] = createPiece(type, color, index);
+            if (type == PieceType::King && color == Color::White) whiteKing = board[index];
+            if (type == PieceType::King && color == Color::Black) blackKing = board[index];
             ++col;
-            if (col > 7) col = 7;
+            if (col > (COL - 1)) col = COL;
         }
         
     }
-
+    std::cout << static_cast<int>(turn);
     return true;
 }

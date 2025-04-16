@@ -1,7 +1,8 @@
 #ifndef PAWN_H
 #define PAWN_H
 
-#include "piece.hpp"
+/* ##### Project Headers ##### */
+#include "Piece.hpp"
 
 class Pawn : public Piece {
     private:
@@ -9,7 +10,5 @@ class Pawn : public Piece {
     public:
         Pawn(Color color, int position) : Piece(color, PieceType::Pawn, position) {}
 };
-
-
 
 #endif
