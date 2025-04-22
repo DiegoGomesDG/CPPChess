@@ -1,0 +1,5 @@
+# Ignore all hidden directories
+.*/
+
+# Ignore clangd file
+compile_commands.json
