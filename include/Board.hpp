@@ -8,6 +8,9 @@
 #include <iostream>
 #include <array>
 
+/* Enums */
+enum class SquareStatus {Invalid, Empty, Friendly, Enemy};
+
 /* Helper Function - Row, Column to Array Index */
 int squareToIndex(int row, int col);
 int indexToRow(int index);
@@ -26,7 +29,12 @@ class Board {
         void clearBoard();
         Piece * getPieceAtIndex(int index) const;
         Piece * createPiece(PieceType type, Color color, int position);
-        bool loadFromFEN(const std::string & fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w");
+        bool loadFromFEN(const std::string & fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq");
+        SquareStatus getSquareStatus(int fromIndex, int toIndex) const;
+        void computeAttackBoards();
+        void computeOccupationBoards();
+
+        void printOccupationBoard();
 };
 
 #endif

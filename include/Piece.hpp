@@ -1,6 +1,12 @@
 #ifndef PIECE_H
 #define PIECE_H
 
+/* Standard Libraries */
+#include <vector>
+
+/* ##### Class Forward Declaration ##### */
+class Board;
+
 enum class Color {White, Black};
 enum class PieceType {Empty, Pawn, Knight, Bishop, Rook, Queen, King};
 
@@ -15,11 +21,13 @@ class Piece {
         Piece(Color color, PieceType type, int position) : position(position), color(color), type(type) {}
 
     public:
-        // virtual void possibleMoves();
-        // virtual bool isValidMove();
+        std::vector<int> validMoves;
+
+        virtual void possibleMoves(const Board & board) = 0;
+        //virtual bool isValidMove();
 
         /* Virtual Destructor */
-        // virtual ~Piece();
+        virtual ~Piece() {}
 
         /* Getters */
         int getPosition() const {return position;}

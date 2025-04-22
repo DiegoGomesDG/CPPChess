@@ -1,4 +1,4 @@
-#include "graphics.hpp"
+#include "Graphics.hpp"
 
 /* Defined Headers */
 #include "Board.hpp"
@@ -79,6 +79,7 @@ Graphics::Graphics() {
         std::cerr << "DL_image could not initialize! SDL_image Error: " << SDL_GetError();
         // Throw Error
     }
+    
 }
 
 Graphics::~Graphics() {
@@ -227,7 +228,15 @@ void Graphics::renderPiece(const Board & board, int index) {
     }
 }
 
-void Graphics::highlightSquare(int col, int row) {
+void Graphics::renderPieces(const Board & board) {  
+    for (int i = 0; i < COL * ROW; i++) {
+		renderPiece(board, i);
+	}
+}
+
+void Graphics::highlightSquare(int index) {
+    int col = indexToColumn(index);
+    int row = (ROW - 1) - indexToRow(index); /* Invert */
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, HIGHLIGHT.r, HIGHLIGHT.g, HIGHLIGHT.b, HIGHLIGHT.a);
 	SDL_Rect highlRect = {SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
@@ -235,15 +244,51 @@ void Graphics::highlightSquare(int col, int row) {
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 }
 
-void Graphics::renderPieces(const Board & board) {
-    
-    for (int i = 0; i < COL * ROW; i++) {
-		renderPiece(board, i);
-	    }
+void Graphics::highlightMove(int index) {
+    int col = indexToColumn(index);
+    int row = (ROW - 1) - indexToRow(index); /* Invert */
+    moveDot.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * col, BORDER_SIZE - 1 + SQUARE_SIZE * row);
 }
 
+void Graphics::highlightCapture(int index) {
+    int col = indexToColumn(index);
+    int row = (ROW - 1) - indexToRow(index); /* Invert */
+    capture.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * col, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+}
+
+void Graphics::highlightPossibleMoves(const Board & board, int index) {
+    if (index > 63 || index < 0) return;
+    if (board.board[index] == nullptr) return;
+    Piece * piece = board.board[index];
+
+    for (int possibleMove : piece->validMoves) {
+        if (board.board[possibleMove] != nullptr) {
+            highlightCapture(possibleMove);
+        } else {
+            highlightMove(possibleMove);
+        }
+    }
+}
+
+void Graphics::selectPiece(const Board & board, int index) {
+    clearWindow();
+	renderBoard();
+	highlightSquare(index);
+	renderPieces(board);
+    highlightPossibleMoves(board, index);
+	updateWindow();
+}
+
+void Graphics::renderBoardWithPieces(const Board & board) {
+    clearWindow();
+    renderBoard();
+	renderPieces(board);
+	updateWindow();
+}
+
+
 /* https://gigi.nullneuron.net/gigilabs/sdl2-drag-and-drop/?fbclid=IwY2xjawJcp9dleHRuA2FlbQIxMAABHVwbudUFVEK3WEu3RsJArnH2_GUbucPv5NFXbvub048pgzXka-PFcwqrIg_aem_hUfSUIs5p6Sm0uZ4gBEfHg */
-void Graphics::dragPiece(const Board & board, int index, int mouseX, int mouseY) {
+void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY) {
 
     Color color;
 	PieceType piece;
@@ -251,9 +296,17 @@ void Graphics::dragPiece(const Board & board, int index, int mouseX, int mouseY)
 	piece = board.board[index]->getType();
     int pieceID = static_cast<int>(piece);
 
+    clearWindow();
+	renderBoard();
+	renderPieces(board);
+    highlightSquare(index);
+    highlightPossibleMoves(board, index);
+
     if (color == Color::White)
 		whitePieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
 			
 	if (color == Color::Black)
 		blackPieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
+
+    updateWindow();
 }

@@ -1,10 +1,11 @@
 /* Standard Libraries */
 #include <cctype>
 #include <iostream>
+#include <sstream>
 
 /* Include other defined headers */
-#include "board.hpp"
-#include "graphics.hpp"
+#include "Board.hpp"
+#include "Graphics.hpp"
 
 /* Include each piece type*/
 #include "King.hpp"
@@ -30,6 +31,9 @@ Source:
 https://lichess.org/@/likeawizard/blog/review-of-different-board-representations-in-computer-chess/S9eQCAWa
 */
 
+
+
+/* Helper functions, maybe static attributes? */
 int squareToIndex(int row, int col) {
     return row * COL + col;
 }
@@ -46,7 +50,7 @@ Board::Board() {
     
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
-        board[i] = NULL;
+        board[i] = nullptr;
         whiteOccupation[i] = 0;
         blackOccupation[i] = 0;
     }
@@ -60,7 +64,7 @@ Board::~Board() {
 void Board::clearBoard() {
     for (int i = 0; i < ROW * COL; ++i) {
         delete board[i];
-        board[i] = NULL;
+        board[i] = nullptr;
         whiteOccupation[i] = 0;
         blackOccupation[i] = 0;
     }
@@ -78,38 +82,38 @@ Piece* Board::createPiece(PieceType type, Color color, int position) {
     }
 }
 
+/* https://www.geeksforgeeks.org/how-to-split-string-by-delimiter-in-cpp/*/
 /* https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation */
 bool Board::loadFromFEN(const std::string & fen) {
+    
     clearBoard();
     
+    std::istringstream fenStream(fen);
+    std::string piecePlacement, activeColor, castlingRights;
+
+    /* Split FEN into main parts */
+    if (!(fenStream >> piecePlacement >> activeColor >> castlingRights)) {
+        return false; /* Invalid FEN */
+    }
+
     int row = (ROW - 1); /* Starts from the 8th row/rank */
     int col = 0; /* Starts from the 0th column/file */
 
-    int strLen = fen.length();
-    char c;
     int index;
 
-    /* Flags to read informations after the piece placement */
-    bool readTurn = true;
-    bool readCastlingRights = true;
-
-    /* Store turn information, change for a global variable later */
-    Color turn = Color::White; /* Default */
-
     /* Store the address of the White and Black King to setup the castling rights LATER */
-    Piece * whiteKing = NULL;
-    Piece * blackKing = NULL;
+    King * whiteKing = nullptr;
+    King * blackKing = nullptr;
 
-    /* Some improvement will be needed if is desired to support full FERN, for now, only the 
-    Piece Placement is supported, any extra character might result in misbehavior*/
-    for(int i = 0; i < strLen; ++i) {
-        c = fen[i];
+    for (char c : piecePlacement) {
+        
         if(c == '/') {
             col = 0;
             row--;
         }
-
-        else if (isdigit(c)) {
+        
+        else if (isdigit(c)) 
+        {
             if((c - '0') > 0 && (c - '0') < 9) {
                 int emptySquares = c - '0';
                 col += emptySquares;
@@ -117,22 +121,8 @@ bool Board::loadFromFEN(const std::string & fen) {
             }
         }
 
-        else if (c == ' ' && readTurn) {
-            ++i;
-            c = fen[i];
-            switch (c) {
-                case 'w': {turn = Color::White;
-                            readTurn = false;
-                            break;}
-                case 'b': {turn = Color::Black;
-                            readTurn = false;
-                            break;}
-                default: return false;
-            }
-
-        }
-
-        else {
+        else 
+        {
             Color color = (isupper(c)) ? Color::White : Color::Black;
             PieceType type;
             c = tolower(c);
@@ -147,13 +137,91 @@ bool Board::loadFromFEN(const std::string & fen) {
             }
             index = squareToIndex(row, col);
             board[index] = createPiece(type, color, index);
-            if (type == PieceType::King && color == Color::White) whiteKing = board[index];
-            if (type == PieceType::King && color == Color::Black) blackKing = board[index];
+            
+            /* Two square moving rights for pawns */
+            if ((col == 1 || col == 6) && type == PieceType::Pawn) {
+                Pawn * pawn = static_cast<Pawn *>(board[index]);
+                pawn->setMoveRight(true);
+            }
+
+            if (type == PieceType::King && color == Color::White) whiteKing = static_cast<King *>(board[index]);
+            if (type == PieceType::King && color == Color::Black) blackKing = static_cast<King *>(board[index]);
             ++col;
             if (col > (COL - 1)) col = COL;
         }
-        
     }
-    std::cout << static_cast<int>(turn);
+
+    /* Store turn information, change for a global variable later */
+    Color turn = (activeColor == "w") ? Color::White :
+    (activeColor == "b") ? Color::Black : Color::White; /* Default */
+    
+    /* Castling Rights */
+    if (whiteKing && blackKing) {
+        whiteKing->setKingSideCastleRight(castlingRights.find('K') != std::string::npos);
+        whiteKing->setQueenSideCastleRight(castlingRights.find('Q') != std::string::npos);
+        blackKing->setKingSideCastleRight(castlingRights.find('k') != std::string::npos);
+        blackKing->setQueenSideCastleRight(castlingRights.find('q') != std::string::npos);
+    }
+
+    std::cout << std::endl << static_cast<int>(turn) << std::endl;
+   
+
+    /* Precompute the Occupation Boards */
+    computeOccupationBoards();
+    printOccupationBoard();
+
+    /* Compute valid moves - TESTING */
+    for (Piece * piece : board) {
+        if (piece != nullptr)
+            piece->possibleMoves(*this);
+    }
+
     return true;
+}
+
+SquareStatus Board::getSquareStatus(int fromIndex, int toIndex) const {
+    
+    if (board[fromIndex] == nullptr) return SquareStatus::Invalid;
+    if (toIndex < 0 || toIndex > 63) return SquareStatus::Invalid;
+    if (fromIndex < 0 || fromIndex > 63) return SquareStatus::Invalid;
+
+    if(board[toIndex] == nullptr) return SquareStatus::Empty; /* empty */
+    if(board[fromIndex]->getColor() != board[toIndex]->getColor()) return SquareStatus::Enemy; /* different piece color */
+    if(board[fromIndex]->getColor() == board[toIndex]->getColor()) return SquareStatus::Friendly;
+
+}
+
+void Board::computeOccupationBoards() {
+    
+    for (int i = 0; i < 64; ++i) {
+        if (board[i] != nullptr) {
+            switch (board[i]->getColor()) {
+                case Color::White: whiteOccupation[i] = 1; break;
+                case Color::Black: blackOccupation[i] = 1; break;
+            }
+        }
+    }
+}
+
+void Board::printOccupationBoard() {
+    std::cout << std::endl << std::endl << std::endl;
+    int row = 7, col = 0;
+    int index;
+
+    while (!(row == 0 && col == 8)) {
+        index = squareToIndex(row, col);
+        if (whiteOccupation[index])
+            std::cout << "W ";
+        else if (blackOccupation[index])
+            std::cout << "B ";
+        else std::cout << "* ";
+
+        ++col;
+        if(col == 8 && row != 0) {
+            std::cout << std::endl;
+            col = 0;
+            if (row >= 0) row--;
+        }
+    }
+    std::cout << std::endl;
 }

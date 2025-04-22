@@ -4,6 +4,9 @@
 /* ##### Project Headers ##### */
 #include "Piece.hpp"
 
+/* ##### Class Forward Declaration ##### */
+class Board;
+
 class King : public Piece {
     private:
         bool kingSideCastle;
@@ -12,8 +15,11 @@ class King : public Piece {
         bool hasMoved;
     public:
         King(Color color, int position);
-        void setKingSideCastleRight(bool state);
-        void setQueenSideCastleRight(bool state);
+        ~King() {}
+        void setKingSideCastleRight(bool state) {kingSideCastle = state;}
+        void setQueenSideCastleRight(bool state) {queenSideCastle = state;}
+        
+        void possibleMoves(const Board& board) override {}
 };
 
 #endif

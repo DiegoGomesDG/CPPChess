@@ -4,11 +4,16 @@
 /* ##### Project Headers ##### */
 #include "Piece.hpp"
 
+/* ##### Class Forward Declaration ##### */
+class Board;
+
 class Rook : public Piece {
     private:
-        bool hasMoved;
+        static std::array<const int, 4> offsets;
     public:
         Rook(Color color, int position) : Piece(color, PieceType::Rook, position) {}
+        ~Rook() {}
+        void possibleMoves(const Board& board) override;
 };
 
 #endif

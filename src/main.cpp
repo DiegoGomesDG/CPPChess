@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 	if (argc > 1) {
 		 fen = argv[1];
 	} else {
-		fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w";
+		fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq";
 	}
 
 	board.loadFromFEN(fen);
@@ -36,13 +36,16 @@ int main(int argc, char* argv[]) {
 	bool quit = false;
 	bool leftMouseButtonDown = false;
 	SDL_Point mousePos;
-	int focusRow, focusCol;
+	int focusRow, focusCol, dropRow, dropCol;
 	int index;
+	int dropIndex;
+	dropIndex = -1;
 
-		/* TO DO: Transform this into a method in class graphics, that returns the destination square of the piece */
+	/* TO DO: Transform this into a method in class graphics, that returns the destination square of the piece */
 	while(!quit) {
 			//Handle events on queue
 		while(SDL_PollEvent(&e) != 0) {
+			
 			if(e.type == SDL_QUIT) {
 				quit = true;
 			}
@@ -50,33 +53,35 @@ int main(int argc, char* argv[]) {
 			if(e.type == SDL_MOUSEMOTION) {
 				mousePos = {e.motion.x, e.motion.y};
 				if(leftMouseButtonDown && board.board[index] != NULL) {
-					boardGUI.clearWindow();
-						boardGUI.renderBoard();
-						boardGUI.renderPieces(board);
-						boardGUI.highlightSquare(focusCol, focusRow);
-						boardGUI.dragPiece(board, index, mousePos.x, mousePos.y);
-						boardGUI.updateWindow();
+					boardGUI.renderDraggedPiece(board, index, mousePos.x, mousePos.y);
+					
 				}
 			}
 
 			if(e.type == SDL_MOUSEBUTTONUP) {
 				if(leftMouseButtonDown && e.button.button == SDL_BUTTON_LEFT) {
 					leftMouseButtonDown = false;
+					mousePos = {e.motion.x, e.motion.y};
+					if(mousePos.x < (WIN_WIDTH + BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT + BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
+						dropCol = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
+						dropRow = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
+					} else {
+						dropCol = -1;
+						dropRow = -1;
+					}
+					if (dropRow >= 0 && dropCol >= 0)
+						dropIndex = squareToIndex(7 - dropRow, dropCol);
+					else {
+						dropIndex = -1;
+					}
+
+					//std::cout << "Drop: " << dropCol << " " << dropRow << " Index: " << dropIndex << std::endl;
 
 					if(index > -1) {
 						if(board.board[index] != NULL) {
-							boardGUI.clearWindow();
-							boardGUI.renderBoard();
-
-							boardGUI.highlightSquare(focusCol, focusRow);
-							
-							boardGUI.renderPieces(board);
-							boardGUI.updateWindow();
+							boardGUI.selectPiece(board, index);
 						} else {
-							boardGUI.clearWindow();
-							boardGUI.renderBoard();
-							boardGUI.renderPieces(board);
-							boardGUI.updateWindow();
+							boardGUI.renderBoardWithPieces(board);
 						}
 					}
 				}
@@ -93,7 +98,7 @@ int main(int argc, char* argv[]) {
 						focusRow = -1;
 					}
 					if (focusRow >= 0 && focusCol >= 0)
-						index = squareToIndex(7 - focusRow, focusCol);
+						index = squareToIndex((ROW - 1) - focusRow, focusCol);
 					else {
 						index = -1;
 					}
@@ -101,18 +106,9 @@ int main(int argc, char* argv[]) {
 
 					if(index > -1) {
 						if(board.board[index] != NULL) {
-							boardGUI.clearWindow();
-							boardGUI.renderBoard();
-
-							boardGUI.highlightSquare(focusCol, focusRow);
-							
-							boardGUI.renderPieces(board);
-							boardGUI.updateWindow();
+							boardGUI.selectPiece(board, index);
 						} else {
-							boardGUI.clearWindow();
-							boardGUI.renderBoard();
-							boardGUI.renderPieces(board);
-							boardGUI.updateWindow();
+							boardGUI.renderBoardWithPieces(board);
 						}
 					}
 

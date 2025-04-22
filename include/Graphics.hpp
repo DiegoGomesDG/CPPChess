@@ -17,10 +17,12 @@ extern const int COL;
 
 /* ##### Class #####*/
 class Graphics {
+    
     private:
         SDL_Window * window;
         SDL_Renderer * renderer;
         static bool instantiated; /* https://gameprogrammingpatterns.com/singleton.html */
+
     public:
         /* RAII Technique - Resource Acquisition Is Initialization */
         Graphics();
@@ -34,9 +36,14 @@ class Graphics {
         void renderBoard();
         void renderPiece(const Board & board, int index);
         void renderPieces(const Board & board);
-        void highlightSquare(int col, int row);
-        void dragPiece(const Board & board, int index, int mouseX, int mouseY);
+        void renderBoardWithPieces(const Board & board);
+        void highlightSquare(int index);
+        void highlightMove(int index);
+        void highlightCapture(int index);
+        void highlightPossibleMoves(const Board & board, int index);
+        void selectPiece(const Board & board, int index);
+        void renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY);
+        
 };
-
 
 #endif
