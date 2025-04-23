@@ -12,7 +12,7 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Rook::offsets = {-8, -1, +1, +8};
 
-void Rook::computeValidMoves(const Board& board) {
+void Rook::computeValidMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 
@@ -29,7 +29,7 @@ void Rook::computeValidMoves(const Board& board) {
             int colDiff = std::abs(nextCol - currentCol);
             if (colDiff != 1 && colDiff != 0) break;
 
-            SquareStatus status = board.getSquareStatus(fromIndex, targetIndex);
+            SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);

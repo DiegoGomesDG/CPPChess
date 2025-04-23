@@ -11,18 +11,22 @@
 #include <cassert>
 
 /* ##### Window properties according to the size of the board ##### */
-extern const int ROW = 8;
-extern const int COL = 8;
-extern const int SQUARE_SIZE = 90; /* Suggested: 90 */
-extern const int BORDER_SIZE = 45; /* Suggested: 45 */
-extern const int WIN_WIDTH = COL * SQUARE_SIZE + 2 * BORDER_SIZE;
-extern const int WIN_HEIGHT = ROW * SQUARE_SIZE + 2 * BORDER_SIZE;
+const int ROW = 8;
+const int COL = 8;
+const int SQUARE_SIZE = 90; /* Suggested: 90 */
+const int BORDER_SIZE = 45; /* Suggested: 45 */
+const int WIN_WIDTH = COL * SQUARE_SIZE + 2 * BORDER_SIZE;
+const int WIN_HEIGHT = ROW * SQUARE_SIZE + 2 * BORDER_SIZE;
 
 /* ##### Board Color Properties ##### */
 const SDL_Color WHITE_SQUARE = {0xEC, 0xDA, 0xB9, 0xFF};
 const SDL_Color BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
 const SDL_Color BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
 const SDL_Color HIGHLIGHT = {0x7F, 0x17, 0x1F, 0x80};
+
+/* Move Animations */
+const int durationMs = 100;
+const int fps = 120;
 
 /* ##### Global Texture ##### */
 Texture whitePieces[7];
@@ -191,19 +195,27 @@ void Graphics::updateWindow() {
     SDL_RenderPresent(renderer);
 }
 
+void Graphics::renderBoardSquare(int col, int row) {
+    if (col < 0 || row < 0 || col >= COL || row >= ROW) return;   
+
+    SDL_Rect fillRect = {SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+
+    if ((row + col) % 2 == 0) {
+        SDL_SetRenderDrawColor(renderer, WHITE_SQUARE.r, WHITE_SQUARE.g, WHITE_SQUARE.b, WHITE_SQUARE.a);
+    } else {
+        SDL_SetRenderDrawColor(renderer, BLACK_SQUARE.r, BLACK_SQUARE.g, BLACK_SQUARE.b, BLACK_SQUARE.a);
+    }
+			
+	SDL_RenderFillRect(renderer, &fillRect);
+}
+
 void Graphics::renderBoard() {
     SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
     SDL_RenderClear(renderer);
 
-    for (int column = 0; column < COL; ++column) {
+    for (int col = 0; col < COL; ++col) {
 		for (int row = 0; row < ROW; ++row) {
-			SDL_Rect fillRect = {SQUARE_SIZE * column + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
-			if ((row + column) % 2 == 0)
-				SDL_SetRenderDrawColor(renderer, WHITE_SQUARE.r, WHITE_SQUARE.g, WHITE_SQUARE.b, WHITE_SQUARE.a);
-			else
-				SDL_SetRenderDrawColor(renderer, BLACK_SQUARE.r, BLACK_SQUARE.g, BLACK_SQUARE.b, BLACK_SQUARE.a);
-			
-			SDL_RenderFillRect(renderer, &fillRect);
+			renderBoardSquare(col, row);
 
 		}
 	}
@@ -277,7 +289,7 @@ void Graphics::highlightPossibleMoves(const Board & board, int index) {
         }
     }
     
-    /* Exception to Pawns Forward Moves*/
+    /* Exception to Pawns */
     if (piece->getType() == PieceType::Pawn) {
         Pawn * pawn = static_cast<Pawn *>(piece);
         for (int possibleMove : pawn->forwardMoves) {
@@ -340,4 +352,47 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
 		blackPieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
 
     updateWindow();
+}
+
+void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toIndex) {
+    int fromCol = indexToColumn(fromIndex);
+    int fromRow = (ROW - 1) - indexToRow(fromIndex);
+    int toCol = indexToColumn(toIndex);
+    int toRow = (ROW - 1) - indexToRow(toIndex);
+
+    int startX = BORDER_SIZE - 1 + fromCol * SQUARE_SIZE;
+    int startY = BORDER_SIZE - 1 + fromRow * SQUARE_SIZE;
+    int endX = BORDER_SIZE - 1 + toCol * SQUARE_SIZE;
+    int endY = BORDER_SIZE - 1 + toRow * SQUARE_SIZE;
+
+    Piece* movingPiece = board.board[fromIndex];
+    if (!movingPiece) return;
+
+    const int frameDelay = 1000 / fps;
+    const int totalFrames = durationMs / frameDelay;
+
+    for (int frame = 0; frame <= totalFrames; ++frame) {
+        float t = static_cast<float>(frame) / totalFrames;
+        int currentX = static_cast<int>(startX + (endX - startX) * t);
+        int currentY = static_cast<int>(startY + (endY - startY) * t);
+
+        // Clear screen and render base board
+        clearWindow();
+        renderBoard();
+
+        // Draw all other pieces
+        renderPieces(board);
+
+        // Redraw the square where the moving piece was, to "hide" it
+        renderBoardSquare(fromCol, fromRow);
+
+        // Draw the moving piece at its interpolated position
+        if (movingPiece->getColor() == Color::White)
+            whitePieces[static_cast<int>(movingPiece->getType())].renderTexture(renderer, currentX, currentY);
+        else
+            blackPieces[static_cast<int>(movingPiece->getType())].renderTexture(renderer, currentX, currentY);
+
+        updateWindow();
+        SDL_Delay(frameDelay);
+    }
 }

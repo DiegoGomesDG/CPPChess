@@ -1,8 +1,9 @@
 #include "Board.hpp"
 #include "Pawn.hpp"
 
-void Pawn::computeValidMoves(const Board& board) {
+void Pawn::computeValidMoves() {
     validMoves.clear();
+    forwardMoves.clear();
     int fromIndex = getPosition();
     Color color = getColor();
 
@@ -15,13 +16,13 @@ void Pawn::computeValidMoves(const Board& board) {
 
     /* Single move forward */
     int targetIndex = fromIndex + forward;
-    SquareStatus status = board.getSquareStatus(fromIndex, targetIndex);
+    SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
     if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64)) {
         forwardMoves.push_back(targetIndex);
 
         /* Double move forward */
         targetIndex = fromIndex + doubleForward;
-        status = board.getSquareStatus(fromIndex, targetIndex);
+        status = board->getSquareStatus(fromIndex, targetIndex);
         if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64) && doublePush) {
             forwardMoves.push_back(targetIndex);
         }
@@ -32,7 +33,7 @@ void Pawn::computeValidMoves(const Board& board) {
     int nextCol = targetIndex % 8;
     int colDiff = std::abs(nextCol - currentCol);
 
-    status = board.getSquareStatus(fromIndex, targetIndex);
+    status = board->getSquareStatus(fromIndex, targetIndex);
     if ((status == SquareStatus::Enemy || status == SquareStatus::Empty) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
@@ -42,9 +43,28 @@ void Pawn::computeValidMoves(const Board& board) {
     nextCol = targetIndex % 8;
     colDiff = std::abs(nextCol - currentCol);
 
-    status = board.getSquareStatus(fromIndex, targetIndex);
+    status = board->getSquareStatus(fromIndex, targetIndex);
     if ((status == SquareStatus::Enemy || status == SquareStatus::Empty) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
 
+}
+
+bool Pawn::isValidMove(int toIndex) {
+    bool isMoveValid = false;
+    for (int move : validMoves) {
+        if (move == toIndex && board->board[move] != nullptr) {
+            isMoveValid = true;
+            return isMoveValid;
+        }
+    }
+    
+    for (int forward : forwardMoves) {
+        if (forward == toIndex) {
+            isMoveValid = true; 
+            return isMoveValid;
+        }
+    }
+    
+    return isMoveValid;
 }

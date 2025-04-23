@@ -13,7 +13,7 @@ class Queen : public Piece {
     public:
         Queen(Color color, int position, Board * board) : Piece(color, PieceType::Queen, position, board) {}  
         ~Queen() {}
-        void computeValidMoves(const Board& board) override;
+        void computeValidMoves() override;
 };
 
 #endif

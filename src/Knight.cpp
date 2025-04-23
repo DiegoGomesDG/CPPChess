@@ -14,7 +14,7 @@
 /* ##### Static Variables ##### */
 std::array<const int, 8> Knight::offsets = {-17, -15, -10, -6, 6, 10, 15, 17};
 
-void Knight::computeValidMoves(const Board& board) {
+void Knight::computeValidMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
     int fromRow = fromIndex / 8;
@@ -35,7 +35,7 @@ void Knight::computeValidMoves(const Board& board) {
         if (!((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2)))
             continue;  // Invalid — wrapped around
         
-        SquareStatus status = board.getSquareStatus(fromIndex, targetIndex);
+        SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
         if (status == SquareStatus::Empty || status == SquareStatus::Enemy) {
             validMoves.push_back(targetIndex);
         }

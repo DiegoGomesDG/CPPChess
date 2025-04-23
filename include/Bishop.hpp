@@ -13,7 +13,7 @@ class Bishop : public Piece {
     public:
         Bishop(Color color, int position, Board * board) : Piece(color, PieceType::Bishop, position, board) {}
         ~Bishop() {}
-        void computeValidMoves(const Board& board) override;
+        void computeValidMoves() override;
 };
 
 #endif

@@ -17,7 +17,7 @@ class Knight : public Piece {
     public:
         Knight(Color color, int position, Board * board) : Piece(color, PieceType::Knight, position, board) {}
         ~Knight() {}
-        void computeValidMoves(const Board& board) override;
+        void computeValidMoves() override;
 };
 
 #endif

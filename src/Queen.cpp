@@ -12,7 +12,7 @@
 /* ##### Static Variables ##### */
 std::array<const int, 8> Queen::offsets = {-9, -8, -7, -1, +1, +7, +8, +9};
 
-void Queen::computeValidMoves(const Board& board) {
+void Queen::computeValidMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 
@@ -29,7 +29,7 @@ void Queen::computeValidMoves(const Board& board) {
             int colDiff = std::abs(nextCol - currentCol);
             if (colDiff != 1 && colDiff != 0) break;
 
-            SquareStatus status = board.getSquareStatus(fromIndex, targetIndex);
+            SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);

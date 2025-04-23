@@ -7,7 +7,11 @@
 /* ##### Standard Libraries ##### */
 #include <array>
 
-/* Enums */
+
+/* ##### Class Forward Declaration ##### */
+class ChessGame;
+
+/* ##### Enums ##### */
 enum class SquareStatus {Invalid, Empty, Friendly, Enemy};
 
 /* Helper Function - Row, Column to Array Index */
@@ -17,9 +21,9 @@ int indexToColumn(int index);
 
 class Board {
     private:
-    
+        ChessGame * game;
     public:
-        Board();
+        Board(ChessGame * game);
         ~Board();
     
         std::array<int, 64> whiteAttackBoard;

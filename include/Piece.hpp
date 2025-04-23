@@ -24,8 +24,8 @@ class Piece {
     public:
         std::vector<int> validMoves;
         
-        virtual void computeValidMoves(const Board & board) = 0;
-        //virtual bool isValidMove();
+        virtual void computeValidMoves() = 0;
+        virtual bool isValidMove(int toIndex);
 
         /* Virtual Destructor */
         virtual ~Piece() {}
@@ -39,6 +39,7 @@ class Piece {
 
         /* Setters */
         void setPosition(int pos) {position = pos;}
+
 };
 
 

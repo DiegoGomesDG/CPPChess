@@ -11,9 +11,13 @@ class Board;
 /* ##### Project headers ##### */
 #include "Graphics.hpp"
 
-/* TEMPORARY: EXTERN FOR COL AND ROW */
+/* Global Variables */
 extern const int ROW;
 extern const int COL;
+extern const int SQUARE_SIZE;
+extern const int BORDER_SIZE;
+extern const int WIN_WIDTH;
+extern const int WIN_HEIGHT;
 
 /* ##### Class #####*/
 class Graphics {
@@ -33,6 +37,7 @@ class Graphics {
 
         void clearWindow();
         void updateWindow();
+        void renderBoardSquare(int col, int row);
         void renderBoard();
         void renderPiece(const Board & board, int index);
         void renderPieces(const Board & board);
@@ -44,6 +49,7 @@ class Graphics {
         void selectPiece(const Board & board, int index);
         void renderHoverSquare(int mouseX, int mouseY);
         void renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY);
+        void animatePieceMoving(const Board & board, int fromIndex, int toIndex);
         
 };
 

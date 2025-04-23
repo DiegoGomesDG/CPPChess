@@ -15,7 +15,9 @@ class Pawn : public Piece {
         Pawn(Color color, int position, Board * board) : Piece(color, PieceType::Pawn, position, board), doublePush(false) {}
         ~Pawn() {}
         void setDoublePush(bool state) {doublePush = state;}
-        void computeValidMoves(const Board& board) override;
+        void computeValidMoves() override;
+        bool isValidMove(int toIndex) override;
+        bool hasMoved() const {return doublePush;}
 };
 
 #endif

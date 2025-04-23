@@ -1,7 +1,6 @@
 #include "Texture.hpp"
 #include "Graphics.hpp"
 
-extern int SQUARE_SIZE;
 
 Texture::Texture() {
     mTexture = nullptr;

@@ -13,7 +13,7 @@ class Rook : public Piece {
     public:
         Rook(Color color, int position, Board * board) : Piece(color, PieceType::Rook, position, board) {}
         ~Rook() {}
-        void computeValidMoves(const Board& board) override;
+        void computeValidMoves() override;
 };
 
 #endif

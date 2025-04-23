@@ -19,7 +19,7 @@ King::King(Color color, int position, Board * board) : Piece(color, PieceType::K
 /* ##### Static Variables ##### */
 std::array<const int, 8> King::offsets = {-9, -8, -7, -1, +1, +7, +8, +9};
 
-void King::computeValidMoves(const Board& board) {
+void King::computeValidMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 
@@ -27,12 +27,12 @@ void King::computeValidMoves(const Board& board) {
         int targetIndex = fromIndex + offset;
         if (targetIndex < 0 || targetIndex >= 64) continue;
         
-        SquareStatus status = board.getSquareStatus(fromIndex, targetIndex);
+        SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
-        if (status == SquareStatus::Empty) {
-            if (getColor() == Color::White && !board.blackAttackBoard[targetIndex])
+        if (status == SquareStatus::Empty || status == SquareStatus::Enemy) {
+            if (getColor() == Color::White && !board->blackAttackBoard[targetIndex])
                 validMoves.push_back(targetIndex);
-            if (getColor() == Color::Black && !board.whiteAttackBoard[targetIndex])
+            if (getColor() == Color::Black && !board->whiteAttackBoard[targetIndex])
                 validMoves.push_back(targetIndex);
         }
         

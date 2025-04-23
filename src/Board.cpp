@@ -6,6 +6,7 @@
 /* Include other defined headers */
 #include "Board.hpp"
 #include "Graphics.hpp"
+#include "Game.hpp"
 
 /* Include each piece type*/
 #include "King.hpp"
@@ -31,8 +32,6 @@ Source:
 https://lichess.org/@/likeawizard/blog/review-of-different-board-representations-in-computer-chess/S9eQCAWa
 */
 
-
-
 /* Helper functions, maybe static attributes? */
 int squareToIndex(int row, int col) {
     return row * COL + col;
@@ -46,7 +45,7 @@ int indexToColumn(int index) {
     return index % COL;
 }
 
-Board::Board() {
+Board::Board(ChessGame * game) : game(game) {
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
         board[i] = nullptr;
@@ -151,7 +150,8 @@ bool Board::loadFromFEN(const std::string & fen) {
 
     /* Store turn information, change for a global variable later */
     Color turn = (activeColor == "w") ? Color::White :
-    (activeColor == "b") ? Color::Black : Color::White; /* Default */
+    (activeColor == "b") ? Color::Black : Color::White;
+    game->setTurn(turn);
     
     /* Castling Rights */
     if (whiteKing && blackKing) {
@@ -166,7 +166,7 @@ bool Board::loadFromFEN(const std::string & fen) {
     /* Precompute valid moves */
     for (Piece * piece : board) {
         if (piece != nullptr)
-            piece->computeValidMoves(*this);
+            piece->computeValidMoves();
     }    
 
     /* Compute attack boards*/
@@ -174,8 +174,8 @@ bool Board::loadFromFEN(const std::string & fen) {
     printAttackBoards();
 
     /* Recompute attack board for Kings */
-    whiteKing->computeValidMoves(*this);
-    blackKing->computeValidMoves(*this);
+    whiteKing->computeValidMoves();
+    blackKing->computeValidMoves();
 
     return true;
 }
@@ -185,7 +185,6 @@ SquareStatus Board::getSquareStatus(int fromIndex, int toIndex) const {
     if (board[fromIndex] == nullptr) return SquareStatus::Invalid;
     if (toIndex < 0 || toIndex > 63) return SquareStatus::Invalid;
     if (fromIndex < 0 || fromIndex > 63) return SquareStatus::Invalid;
-
     if(board[toIndex] == nullptr) return SquareStatus::Empty; /* empty */
     if(board[fromIndex]->getColor() != board[toIndex]->getColor()) return SquareStatus::Enemy; /* different piece color */
     if(board[fromIndex]->getColor() == board[toIndex]->getColor()) return SquareStatus::Friendly;
@@ -258,16 +257,10 @@ void Board::movePiece(int fromIndex, int toIndex) {
     Piece * movingPiece = board[fromIndex];
     if (movingPiece == nullptr) return;
 
-    //movingPiece->computeValidMoves(*this);
+    //movingPiece->computeValidMoves();
 
     /* Check if the move is valid */
-    bool isMoveValid = false;
-    for (int move : movingPiece->validMoves) {
-        if (move == toIndex) {
-            isMoveValid = true;
-            break;
-        }
-    }
+    bool isMoveValid = movingPiece->isValidMove(toIndex);
     if (!isMoveValid) return;
 
     /* Handle PIECE CAPTURE. If the piece at toIndex is not null, it means there is some piece, which should be deleted */
@@ -280,7 +273,17 @@ void Board::movePiece(int fromIndex, int toIndex) {
     board[fromIndex] = nullptr;
     movingPiece->setPosition(toIndex);
 
+    /* TEMPORARY: Removes the ability to have double forward moves. There should be a better way to do it... */
+    if(movingPiece->getType() == PieceType::Pawn) {
+        Pawn * pawn = static_cast<Pawn *>(movingPiece);
+        pawn->setDoublePush(false);
+    }
+
     /* Recompute the valid moves */
-    movingPiece->computeValidMoves(*this);
+    for (Piece * piece : board) {
+        if (piece != nullptr)
+            piece->computeValidMoves();
+    }
+    /* Recompute attack boards */
     computeAttackBoards();
 }

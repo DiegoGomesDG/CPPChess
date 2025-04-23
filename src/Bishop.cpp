@@ -12,7 +12,7 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Bishop::offsets = {-9, -7, +7, +9};
 
-void Bishop::computeValidMoves(const Board& board) {
+void Bishop::computeValidMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 
@@ -29,7 +29,7 @@ void Bishop::computeValidMoves(const Board& board) {
             int colDiff = std::abs(nextCol - currentCol);
             if (colDiff != 1 && colDiff != 0) break;
 
-            SquareStatus status = board.getSquareStatus(fromIndex, targetIndex);
+            SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);

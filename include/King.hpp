@@ -20,7 +20,7 @@ class King : public Piece {
         void setKingSideCastleRight(bool state) {kingSideCastle = state;}
         void setQueenSideCastleRight(bool state) {queenSideCastle = state;}
         
-        void computeValidMoves(const Board& board) override;
+        void computeValidMoves() override;
 };
 
 #endif
