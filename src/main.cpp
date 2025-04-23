@@ -1,6 +1,7 @@
 #include "../include/Graphics.hpp"
 #include "../include/Board.hpp"
 #include "../include/Texture.hpp"
+#include "SDL_timer.h"
 
 extern int SQUARE_SIZE;
 extern int BORDER_SIZE;
@@ -39,13 +40,14 @@ int main(int argc, char* argv[]) {
 	int focusRow, focusCol, dropRow, dropCol;
 	int index;
 	int dropIndex;
+	bool executeOnce = true;
 	dropIndex = -1;
 
 	/* TO DO: Transform this into a method in class graphics, that returns the destination square of the piece */
 	while(!quit) {
 			//Handle events on queue
 		while(SDL_PollEvent(&e) != 0) {
-			
+
 			if(e.type == SDL_QUIT) {
 				quit = true;
 			}
@@ -90,7 +92,7 @@ int main(int argc, char* argv[]) {
 			if(e.type == SDL_MOUSEBUTTONDOWN) {
 				if (!leftMouseButtonDown && e.button.button == SDL_BUTTON_LEFT) {
 					leftMouseButtonDown = true;
-					if(mousePos.x < (WIN_WIDTH + BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT + BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
+					if(mousePos.x < (WIN_WIDTH - BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT - BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
 						focusCol = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
 						focusRow = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
 					} else {
@@ -117,6 +119,18 @@ int main(int argc, char* argv[]) {
 			
 		}
 
+	}
+
+	if(executeOnce) {
+		executeOnce = false;
+		SDL_Delay(1000);
+		board.movePiece(28, 35);
+		boardGUI.renderBoardWithPieces(board);
+		SDL_Delay(1000);
+		board.board[42]->computeValidMoves(board);
+		board.movePiece(42, 35);
+		boardGUI.renderBoardWithPieces(board);
+		SDL_Delay(3000);
 	}
 
 	return 0;

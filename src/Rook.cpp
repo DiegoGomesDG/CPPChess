@@ -12,7 +12,7 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Rook::offsets = {-8, -1, +1, +8};
 
-void Rook::possibleMoves(const Board& board) {
+void Rook::computeValidMoves(const Board& board) {
     validMoves.clear();
     int fromIndex = getPosition();
 

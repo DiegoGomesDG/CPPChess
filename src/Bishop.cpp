@@ -12,7 +12,7 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Bishop::offsets = {-9, -7, +7, +9};
 
-void Bishop::possibleMoves(const Board& board) {
+void Bishop::computeValidMoves(const Board& board) {
     validMoves.clear();
     int fromIndex = getPosition();
 

@@ -11,9 +11,9 @@ class Rook : public Piece {
     private:
         static std::array<const int, 4> offsets;
     public:
-        Rook(Color color, int position) : Piece(color, PieceType::Rook, position) {}
+        Rook(Color color, int position, Board * board) : Piece(color, PieceType::Rook, position, board) {}
         ~Rook() {}
-        void possibleMoves(const Board& board) override;
+        void computeValidMoves(const Board& board) override;
 };
 
 #endif

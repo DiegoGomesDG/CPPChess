@@ -11,9 +11,9 @@ class Bishop : public Piece {
     private:
         static std::array<const int, 4> offsets;
     public:
-        Bishop(Color color, int position) : Piece(color, PieceType::Bishop, position) {}
+        Bishop(Color color, int position, Board * board) : Piece(color, PieceType::Bishop, position, board) {}
         ~Bishop() {}
-        void possibleMoves(const Board& board) override;
+        void computeValidMoves(const Board& board) override;
 };
 
 #endif

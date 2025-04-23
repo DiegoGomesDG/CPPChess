@@ -16,14 +16,15 @@ class Piece {
         int position;
         Color color;
         PieceType type;
+        Board * board;
 
         /* Protected Constructor*/
-        Piece(Color color, PieceType type, int position) : position(position), color(color), type(type) {}
+        Piece(Color color, PieceType type, int position, Board * board) : position(position), color(color), type(type), board(board) {}
 
     public:
         std::vector<int> validMoves;
-
-        virtual void possibleMoves(const Board & board) = 0;
+        
+        virtual void computeValidMoves(const Board & board) = 0;
         //virtual bool isValidMove();
 
         /* Virtual Destructor */
@@ -35,6 +36,9 @@ class Piece {
         int getColumn() const {return position % 8;}
         Color getColor() const {return color;}
         PieceType getType() const {return type;}
+
+        /* Setters */
+        void setPosition(int pos) {position = pos;}
 };
 
 

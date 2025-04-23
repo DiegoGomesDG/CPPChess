@@ -15,9 +15,9 @@ class Knight : public Piece {
     private:
         static std::array<const int, 8> offsets;
     public:
-        Knight(Color color, int position) : Piece(color, PieceType::Knight, position) {}
+        Knight(Color color, int position, Board * board) : Piece(color, PieceType::Knight, position, board) {}
         ~Knight() {}
-        void possibleMoves(const Board& board) override;
+        void computeValidMoves(const Board& board) override;
 };
 
 #endif

@@ -42,6 +42,7 @@ class Graphics {
         void highlightCapture(int index);
         void highlightPossibleMoves(const Board & board, int index);
         void selectPiece(const Board & board, int index);
+        void renderHoverSquare(int mouseX, int mouseY);
         void renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY);
         
 };

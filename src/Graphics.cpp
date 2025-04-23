@@ -4,6 +4,7 @@
 #include "Board.hpp"
 #include "Texture.hpp"
 #include "Piece.hpp"
+#include "Pawn.hpp"
 
 /* ##### Libraries ##### */
 #include <iostream>
@@ -29,6 +30,7 @@ Texture blackPieces[7];
 Texture moveDot;
 Texture kingInCheck;
 Texture capture;
+Texture hoverSquare;
 
 /* ##### Static Variables ##### */
 bool Graphics::instantiated = false;
@@ -171,6 +173,12 @@ bool Graphics::loadMedia() {
         success = false;
     }
 
+    /* ##### Square that appears when the mouse is hovering */
+    if(!hoverSquare.loadTexture("../assets/HoverSquare.png", renderer)) {
+        std::cerr << "Failed to load texture!";
+        success = false;
+    }
+
     return success;
 }
 
@@ -263,8 +271,16 @@ void Graphics::highlightPossibleMoves(const Board & board, int index) {
 
     for (int possibleMove : piece->validMoves) {
         if (board.board[possibleMove] != nullptr) {
-            highlightCapture(possibleMove);
+             highlightCapture(possibleMove);
         } else {
+            if(piece->getType() != PieceType::Pawn) highlightMove(possibleMove);
+        }
+    }
+    
+    /* Exception to Pawns Forward Moves*/
+    if (piece->getType() == PieceType::Pawn) {
+        Pawn * pawn = static_cast<Pawn *>(piece);
+        for (int possibleMove : pawn->forwardMoves) {
             highlightMove(possibleMove);
         }
     }
@@ -286,6 +302,20 @@ void Graphics::renderBoardWithPieces(const Board & board) {
 	updateWindow();
 }
 
+void Graphics::renderHoverSquare(int mouseX, int mouseY) {
+    int hoverCol, hoverRow;
+    
+    if(mouseX < (WIN_WIDTH - BORDER_SIZE) && (mouseX > BORDER_SIZE) && mouseY < (WIN_HEIGHT - BORDER_SIZE) && (mouseY > BORDER_SIZE)) {
+        hoverCol = (mouseX - BORDER_SIZE) / SQUARE_SIZE;
+        hoverRow = (mouseY - BORDER_SIZE) / SQUARE_SIZE;
+    } else {
+        hoverCol = -1;
+        hoverRow = -1;
+    }
+
+    if (hoverCol > -1 && hoverRow > -1)
+        hoverSquare.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
+}
 
 /* https://gigi.nullneuron.net/gigilabs/sdl2-drag-and-drop/?fbclid=IwY2xjawJcp9dleHRuA2FlbQIxMAABHVwbudUFVEK3WEu3RsJArnH2_GUbucPv5NFXbvub048pgzXka-PFcwqrIg_aem_hUfSUIs5p6Sm0uZ4gBEfHg */
 void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY) {
@@ -298,6 +328,7 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
 
     clearWindow();
 	renderBoard();
+    renderHoverSquare(mouseX, mouseY);
 	renderPieces(board);
     highlightSquare(index);
     highlightPossibleMoves(board, index);

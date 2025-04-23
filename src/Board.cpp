@@ -47,14 +47,12 @@ int indexToColumn(int index) {
 }
 
 Board::Board() {
-    
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
         board[i] = nullptr;
-        whiteOccupation[i] = 0;
-        blackOccupation[i] = 0;
+        whiteAttackBoard[i] = 0;
+        blackAttackBoard[i] = 0;
     }
-
 }
 
 Board::~Board() {
@@ -65,19 +63,19 @@ void Board::clearBoard() {
     for (int i = 0; i < ROW * COL; ++i) {
         delete board[i];
         board[i] = nullptr;
-        whiteOccupation[i] = 0;
-        blackOccupation[i] = 0;
+        whiteAttackBoard[i] = 0;
+        blackAttackBoard[i] = 0;
     }
 }
 
 Piece* Board::createPiece(PieceType type, Color color, int position) {
     switch(type) {
-        case PieceType::King: return new King(color, position);
-        case PieceType::Queen: return new Queen(color, position);
-        case PieceType::Rook: return new Rook(color, position);
-        case PieceType::Bishop: return new Bishop(color, position);
-        case PieceType::Knight: return new Knight(color, position);
-        case PieceType::Pawn: return new Pawn(color, position);
+        case PieceType::King: return new King(color, position, this);
+        case PieceType::Queen: return new Queen(color, position, this);
+        case PieceType::Rook: return new Rook(color, position, this);
+        case PieceType::Bishop: return new Bishop(color, position, this);
+        case PieceType::Knight: return new Knight(color, position, this);
+        case PieceType::Pawn: return new Pawn(color, position, this);
         default: return nullptr; // Implement error handling
     }
 }
@@ -139,9 +137,9 @@ bool Board::loadFromFEN(const std::string & fen) {
             board[index] = createPiece(type, color, index);
             
             /* Two square moving rights for pawns */
-            if ((col == 1 || col == 6) && type == PieceType::Pawn) {
+            if ((row == 1 || row == 6) && type == PieceType::Pawn) {
                 Pawn * pawn = static_cast<Pawn *>(board[index]);
-                pawn->setMoveRight(true);
+                pawn->setDoublePush(true);
             }
 
             if (type == PieceType::King && color == Color::White) whiteKing = static_cast<King *>(board[index]);
@@ -164,17 +162,20 @@ bool Board::loadFromFEN(const std::string & fen) {
     }
 
     std::cout << std::endl << static_cast<int>(turn) << std::endl;
-   
 
-    /* Precompute the Occupation Boards */
-    computeOccupationBoards();
-    printOccupationBoard();
-
-    /* Compute valid moves - TESTING */
+    /* Precompute valid moves */
     for (Piece * piece : board) {
         if (piece != nullptr)
-            piece->possibleMoves(*this);
-    }
+            piece->computeValidMoves(*this);
+    }    
+
+    /* Compute attack boards*/
+    computeAttackBoards();
+    printAttackBoards();
+
+    /* Recompute attack board for Kings */
+    whiteKing->computeValidMoves(*this);
+    blackKing->computeValidMoves(*this);
 
     return true;
 }
@@ -189,33 +190,42 @@ SquareStatus Board::getSquareStatus(int fromIndex, int toIndex) const {
     if(board[fromIndex]->getColor() != board[toIndex]->getColor()) return SquareStatus::Enemy; /* different piece color */
     if(board[fromIndex]->getColor() == board[toIndex]->getColor()) return SquareStatus::Friendly;
 
+    return SquareStatus::Invalid;
 }
 
-void Board::computeOccupationBoards() {
+void Board::computeAttackBoards() {
     
     for (int i = 0; i < 64; ++i) {
-        if (board[i] != nullptr) {
-            switch (board[i]->getColor()) {
-                case Color::White: whiteOccupation[i] = 1; break;
-                case Color::Black: blackOccupation[i] = 1; break;
-            }
-        }
+        whiteAttackBoard[i] = 0;
+        blackAttackBoard[i] = 0;
     }
+
+    for (Piece * piece : board) {
+    if (piece != nullptr)
+        for (int index : piece->validMoves) {
+            switch (piece->getColor()) {
+                case Color::White: whiteAttackBoard[index] = 1; break;
+                case Color::Black: blackAttackBoard[index] = 1; break;
+                default: break;
+            }
+                    
+        }
+
+    }    
 }
 
-void Board::printOccupationBoard() {
+void Board::printAttackBoards() {
+   
     std::cout << std::endl << std::endl << std::endl;
     int row = 7, col = 0;
     int index;
-
+    
     while (!(row == 0 && col == 8)) {
         index = squareToIndex(row, col);
-        if (whiteOccupation[index])
-            std::cout << "W ";
-        else if (blackOccupation[index])
-            std::cout << "B ";
-        else std::cout << "* ";
-
+        if (whiteAttackBoard[index])
+            std::cout << "* ";
+        else std::cout << "_ ";
+    
         ++col;
         if(col == 8 && row != 0) {
             std::cout << std::endl;
@@ -223,5 +233,54 @@ void Board::printOccupationBoard() {
             if (row >= 0) row--;
         }
     }
-    std::cout << std::endl;
+        std::cout << std::endl << "----------------" << std::endl;
+
+    row = 7; col = 0;
+    while (!(row == 0 && col == 8)) {
+        index = squareToIndex(row, col);
+        if (blackAttackBoard[index])
+            std::cout << "* ";
+        else std::cout << "_ ";
+    
+        ++col;
+        if(col == 8 && row != 0) {
+            std::cout << std::endl;
+            col = 0;
+            if (row >= 0) row--;
+        }
+    }
+        std::cout << std::endl;
+}
+
+void Board::movePiece(int fromIndex, int toIndex) {
+    
+    /* Retrieve the Moving Piece, check if it is not null */
+    Piece * movingPiece = board[fromIndex];
+    if (movingPiece == nullptr) return;
+
+    //movingPiece->computeValidMoves(*this);
+
+    /* Check if the move is valid */
+    bool isMoveValid = false;
+    for (int move : movingPiece->validMoves) {
+        if (move == toIndex) {
+            isMoveValid = true;
+            break;
+        }
+    }
+    if (!isMoveValid) return;
+
+    /* Handle PIECE CAPTURE. If the piece at toIndex is not null, it means there is some piece, which should be deleted */
+    Piece * targetPiece = board[toIndex];
+    if (targetPiece != nullptr && targetPiece->getType() != PieceType::King)
+        delete targetPiece;
+
+    /* Move Piece */
+    board[toIndex] = movingPiece;
+    board[fromIndex] = nullptr;
+    movingPiece->setPosition(toIndex);
+
+    /* Recompute the valid moves */
+    movingPiece->computeValidMoves(*this);
+    computeAttackBoards();
 }
