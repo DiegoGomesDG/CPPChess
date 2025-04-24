@@ -2,6 +2,7 @@
 
 /* Defined Headers */
 #include "Board.hpp"
+#include "SDL_mixer.h"
 #include "Texture.hpp"
 #include "Piece.hpp"
 #include "Pawn.hpp"
@@ -14,27 +15,47 @@
 const int ROW = 8;
 const int COL = 8;
 const int SQUARE_SIZE = 90; /* Suggested: 90 */
-const int BORDER_SIZE = 45; /* Suggested: 45 */
+const int BORDER_SIZE = 50; /* Suggested: 45 */
 const int WIN_WIDTH = COL * SQUARE_SIZE + 2 * BORDER_SIZE;
 const int WIN_HEIGHT = ROW * SQUARE_SIZE + 2 * BORDER_SIZE;
+int physW, physH; /* Logical Size */
+float scaleX, scaleY; /* Scaling Factor */
 
 /* ##### Board Color Properties ##### */
 const SDL_Color WHITE_SQUARE = {0xEC, 0xDA, 0xB9, 0xFF};
 const SDL_Color BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
 const SDL_Color BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
 const SDL_Color HIGHLIGHT = {0x7F, 0x17, 0x1F, 0x80};
+const SDL_Color BOARD_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
 
 /* Move Animations */
 const int durationMs = 100;
 const int fps = 120;
 
-/* ##### Global Texture ##### */
+/* ##### Global Textures ##### */
 Texture whitePieces[7];
 Texture blackPieces[7];
 Texture moveDot;
 Texture kingInCheck;
 Texture capture;
 Texture hoverSquare;
+Texture boardLetters[8];
+Texture boardNumbers[8];
+
+/* ##### Sound Effects ##### */
+Mix_Chunk * gameStartSound = nullptr;
+Mix_Chunk * gameEndSound = nullptr;
+Mix_Chunk * captureSound = nullptr;
+Mix_Chunk * castleSound = nullptr;
+Mix_Chunk * moveSound = nullptr;
+Mix_Chunk * moveCheckSound = nullptr;
+Mix_Chunk * promoteSound = nullptr;
+Mix_Chunk * illegalMoveSound = nullptr;
+/* From: chess.com - https://www.chess.com/forum/view/general/chessboard-sound-files?page=2 */
+
+/* Fonts */
+const int baseFontSize = 24;
+TTF_Font * boardFont;
 
 /* ##### Static Variables ##### */
 bool Graphics::instantiated = false;
@@ -62,10 +83,9 @@ Graphics::Graphics() {
     }
 
     /* Get Retina Scaling Factors - HIGH DPI Macbook Screen - Scale of 2.0 */
-    int physW, physH;
     SDL_GL_GetDrawableSize(window, &physW, &physH);
-    float scaleX = physW / static_cast<float>(WIN_WIDTH); // logical width
-    float scaleY = physH / static_cast <float> (WIN_HEIGHT);  // logical height
+    scaleX = physW / static_cast<float>(WIN_WIDTH); // logical width
+    scaleY = physH / static_cast <float> (WIN_HEIGHT);  // logical height
 
     /* Create RENDERER for the Window*/
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -85,6 +105,29 @@ Graphics::Graphics() {
         std::cerr << "DL_image could not initialize! SDL_image Error: " << SDL_GetError();
         // Throw Error
     }
+
+    /* Initialize SDL_Mixer */
+    if(Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0) {
+        std::cerr << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << std::endl;
+        // Throw Error
+    }
+
+    /* Initialize SDL_ttf */
+    if (TTF_Init() == -1) {
+        std::cerr << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
+    }
+
+    /* Initialize the Board Squares */
+    for (int row = 0; row < ROW; ++row) {
+        for (int col = 0; col < COL; ++col) {
+            int index = row * COL + col;
+
+            // SDL y-axis is top-down, so flip row to draw bottom-up
+            int sdlRow = (ROW - 1) - row;
+
+            squares[index] = {BORDER_SIZE - 1 + col * SQUARE_SIZE, BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+        }
+    }
     
 }
 
@@ -95,10 +138,33 @@ Graphics::~Graphics() {
     if (renderer != NULL)    
         SDL_DestroyRenderer(renderer);
 
+    /* Free Sound Effects */
+    Mix_FreeChunk(gameStartSound);
+    Mix_FreeChunk(gameEndSound);
+    Mix_FreeChunk(captureSound);
+    Mix_FreeChunk(castleSound);
+    Mix_FreeChunk(moveSound);
+    Mix_FreeChunk(moveCheckSound);
+    Mix_FreeChunk(promoteSound);
+    Mix_FreeChunk(illegalMoveSound);
+
+
+    /* Set Sound Effects to nullptr */
+    gameStartSound = nullptr;
+    gameEndSound = nullptr;
+    captureSound = nullptr;
+    castleSound = nullptr;
+    moveSound = nullptr;
+    moveCheckSound = nullptr;
+    promoteSound = nullptr;
+    illegalMoveSound = nullptr;
+
+	/* Quit SDL subsystems */
     instantiated = false;
-	//Quit SDL subsystems
 	IMG_Quit();
 	SDL_Quit();
+    Mix_Quit();
+    TTF_Quit();
 }
 
 /* Source of the Files: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces */
@@ -183,6 +249,77 @@ bool Graphics::loadMedia() {
         success = false;
     }
 
+    /* ##### LOAD SOUND EFFECTS */
+    gameStartSound = Mix_LoadWAV("../assets/sounds/game-start.wav");
+    if(gameStartSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    gameEndSound = Mix_LoadWAV("../assets/sounds/game-end.wav");
+    if(gameEndSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    captureSound = Mix_LoadWAV("../assets/sounds/capture.wav");
+    if(captureSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    castleSound = Mix_LoadWAV("../assets/sounds/castle.wav");
+    if(castleSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    moveSound = Mix_LoadWAV("../assets/sounds/move.wav");
+    if(moveSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    moveCheckSound = Mix_LoadWAV("../assets/sounds/move-check.wav");
+    if(moveCheckSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    promoteSound = Mix_LoadWAV("../assets/sounds/promote.wav");
+    if(promoteSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    illegalMoveSound = Mix_LoadWAV("../assets/sounds/illegal.wav");
+    if(illegalMoveSound == nullptr) {
+        std::cerr << "Failure to load sound effect! " << Mix_GetError() << std::endl;
+        success = false;
+    }
+
+    /* Load Necessary Fonts */
+    int scaledFontSize = baseFontSize * scaleY;
+    boardFont = TTF_OpenFont("../assets/fonts/Fira_Sans/FiraSans-Medium.ttf", scaledFontSize);
+    
+    if (boardFont == nullptr) {
+        std::cerr << "Failure to load boardFont! SDL_ttf Error: " << TTF_GetError() << std::endl;
+        success = false;
+    }
+
+    /* Create the Board Letters and Numbers */
+    for (int i = 0; i < ROW; ++i) {
+        char fileChar = 'a' + i;
+        std::string fileStr(1, fileChar);
+        boardLetters[i].loadFromRenderedText(renderer, boardFont, fileStr, BOARD_TEXT);
+    }
+
+    for (int i = 0; i < ROW; ++i) {
+        char fileChar = '1' + i;
+        std::string ranksStr(1, fileChar);
+        boardNumbers[i].loadFromRenderedText(renderer, boardFont, ranksStr, BOARD_TEXT);
+    }
+
     return success;
 }
 
@@ -209,6 +346,17 @@ void Graphics::renderBoardSquare(int col, int row) {
 	SDL_RenderFillRect(renderer, &fillRect);
 }
 
+void Graphics::renderMarkings() {
+    /* File Markings */
+    for (int i = 0; i < COL; ++i) {
+        boardLetters[i].renderText(renderer, BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (SQUARE_SIZE/2 - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+    }
+    /* Row Markings */
+    for (int i = 0; i < ROW; ++i) {
+        boardNumbers[i].renderText(renderer, BORDER_SIZE/2 - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (SQUARE_SIZE/2 - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
+    }
+}
+
 void Graphics::renderBoard() {
     SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
     SDL_RenderClear(renderer);
@@ -216,9 +364,10 @@ void Graphics::renderBoard() {
     for (int col = 0; col < COL; ++col) {
 		for (int row = 0; row < ROW; ++row) {
 			renderBoardSquare(col, row);
-
 		}
+        
 	}
+    renderMarkings();
 }
 
 void Graphics::renderPiece(const Board & board, int index) {
@@ -248,6 +397,13 @@ void Graphics::renderPiece(const Board & board, int index) {
     }
 }
 
+void Graphics::renderKingInCheck(int index) {
+    int col = indexToColumn(index);
+    int row = (ROW - 1) - indexToRow(index); /* Invert */
+    kingInCheck.renderTexture(renderer, SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1);
+    
+}
+
 void Graphics::renderPieces(const Board & board) {  
     for (int i = 0; i < COL * ROW; i++) {
 		renderPiece(board, i);
@@ -259,8 +415,8 @@ void Graphics::highlightSquare(int index) {
     int row = (ROW - 1) - indexToRow(index); /* Invert */
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, HIGHLIGHT.r, HIGHLIGHT.g, HIGHLIGHT.b, HIGHLIGHT.a);
-	SDL_Rect highlRect = {SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
-	SDL_RenderFillRect(renderer, &highlRect);
+	SDL_Rect highlight = {SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+	SDL_RenderFillRect(renderer, &highlight);
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 }
 
@@ -395,4 +551,7 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
         updateWindow();
         SDL_Delay(frameDelay);
     }
+    if(board.board[toIndex] != nullptr) {
+        Mix_PlayChannel(-1, captureSound, 0);
+    } else Mix_PlayChannel(-1, moveSound, 0);
 }

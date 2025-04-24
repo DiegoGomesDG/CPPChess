@@ -280,10 +280,21 @@ void Board::movePiece(int fromIndex, int toIndex) {
     }
 
     /* Recompute the valid moves */
+    Piece * whiteKing = nullptr;
+    Piece * blackKing = nullptr;
     for (Piece * piece : board) {
-        if (piece != nullptr)
+        if (piece != nullptr) {
             piece->computeValidMoves();
+            if (piece->getType() == PieceType::King) {
+                if(piece->getColor() == Color::White) whiteKing = piece;
+                if(piece->getColor() == Color::Black) blackKing = piece;
+            }
+        }
+            
+        
     }
     /* Recompute attack boards */
     computeAttackBoards();
+    whiteKing->computeValidMoves();
+    blackKing->computeValidMoves();
 }

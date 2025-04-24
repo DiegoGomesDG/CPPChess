@@ -19,8 +19,10 @@ class King : public Piece {
         ~King() {}
         void setKingSideCastleRight(bool state) {kingSideCastle = state;}
         void setQueenSideCastleRight(bool state) {queenSideCastle = state;}
+        void setCheck(bool state) {inCheck = state;}
         
         void computeValidMoves() override;
+
 };
 
 #endif

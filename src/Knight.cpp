@@ -1,5 +1,6 @@
 #include "Board.hpp"
 #include "Knight.hpp"
+#include "King.hpp"
 
 /* https://www.chessprogramming.org/Knight_Pattern
             +15  +17
@@ -38,6 +39,10 @@ void Knight::computeValidMoves() {
         SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
         if (status == SquareStatus::Empty || status == SquareStatus::Enemy) {
             validMoves.push_back(targetIndex);
+            if (board->board[targetIndex]->getType() == PieceType::King && board->board[targetIndex]->getColor() != getColor()) {
+                King * king = static_cast<King *>(board->board[targetIndex]);
+                king->setCheck(true);
+            }
         }
     }
 }

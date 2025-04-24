@@ -1,4 +1,6 @@
 #include "Board.hpp"
+#include "King.hpp"
+#include "Piece.hpp"
 #include "Bishop.hpp"
 
 /* https://www.chessprogramming.org/Efficient_Generation_of_Sliding_Piece_Attacks
@@ -33,8 +35,12 @@ void Bishop::computeValidMoves() {
 
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);
-            } else if (status == SquareStatus::Enemy) {
+            } else if (status == SquareStatus::Enemy) {   
                 validMoves.push_back(targetIndex);
+                if (board->board[targetIndex]->getType() == PieceType::King && board->board[targetIndex]->getColor() != getColor()) {
+                    King * king = static_cast<King *>(board->board[targetIndex]);
+                    king->setCheck(true);
+                }
                 break;
             } else if (status == SquareStatus::Friendly) {
                 break;

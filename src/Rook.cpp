@@ -1,5 +1,6 @@
 #include "Board.hpp"
 #include "Rook.hpp"
+#include "King.hpp"
 
 /* https://www.chessprogramming.org/Efficient_Generation_of_Sliding_Piece_Attacks
     +7    +8    +9
@@ -35,6 +36,10 @@ void Rook::computeValidMoves() {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {
                 validMoves.push_back(targetIndex);
+                if (board->board[targetIndex]->getType() == PieceType::King && board->board[targetIndex]->getColor() != getColor()) {
+                    King * king = static_cast<King *>(board->board[targetIndex]);
+                    king->setCheck(true);
+                }
                 break;
             } else if (status == SquareStatus::Friendly) {
                 break;

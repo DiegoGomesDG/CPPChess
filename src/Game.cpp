@@ -1,10 +1,14 @@
 #include "Game.hpp"
+#include "Graphics.hpp"
+#include "SDL_events.h"
+#include "SDL_mixer.h"
 
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), wasClicked(false) {
     board.loadFromFEN(fen);
     graphics.clearWindow();
     graphics.loadMedia();
     graphics.renderBoardWithPieces(board);
+    Mix_PlayChannel(-1, gameStartSound, 0);
     
 }
 
@@ -17,6 +21,18 @@ void ChessGame::handleEvent(SDL_Event & event) {
         case SDL_QUIT:
             state = GameState::GameOver;
             return;
+
+        case SDL_MOUSEMOTION:
+            mousePos = {event.motion.x, event.motion.y};
+            if(leftMouseButtonDown && state == GameState::PieceSelected && focusIndex != -1) {
+                state = GameState::Dragging;
+                wasClicked = false;
+            }
+
+            if(state == GameState::Dragging && focusIndex != -1) {
+                graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
+            }
+            break;
 
         case SDL_MOUSEBUTTONDOWN:
             if (!leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
@@ -51,7 +67,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                                 graphics.selectPiece(board, focusIndex);
                                 return;
                             }
-                            focusedPiece->computeValidMoves();
+                            
                             if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
                                 state = GameState::Processing;
                                 wasClicked = true;
@@ -66,19 +82,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                     }
                 }
             }
-            break;
-
-        case SDL_MOUSEMOTION:
-            mousePos = {event.motion.x, event.motion.y};
-            if(leftMouseButtonDown && state == GameState::PieceSelected && focusIndex != -1) {
-                state = GameState::Dragging;
-                wasClicked = false;
-            }
-
-            if(state == GameState::Dragging && focusIndex != -1) {
-                graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
-            }
-            break;
+            break;        
 
         case SDL_MOUSEBUTTONUP:
             if(leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
@@ -95,13 +99,14 @@ void ChessGame::handleEvent(SDL_Event & event) {
 
                 if (state == GameState::Dragging && focusIndex != -1) {
                     Piece * piece = board.board[focusIndex];
-                    piece->computeValidMoves();
+                    
                     if (targetIndex != -1 && piece != nullptr && piece->isValidMove(targetIndex)) {
                         state = GameState::Processing;
                     } else {
                         /* Invalid Drop, return to previous selection */
                         state = GameState::PieceSelected;
                         graphics.selectPiece(board, focusIndex);
+                        Mix_PlayChannel(-1, illegalMoveSound, 0);
                     }
                 }
             }
@@ -114,6 +119,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
             graphics.animatePieceMoving(board, focusIndex, targetIndex);
         }
         board.movePiece(focusIndex, targetIndex);
+        
         turn = (turn == Color::White) ? Color::Black : Color::White;
 
         /* Reset */
@@ -122,6 +128,9 @@ void ChessGame::handleEvent(SDL_Event & event) {
         wasClicked = false;
         state = GameState::Idle;
         graphics.renderBoardWithPieces(board);
+        if(board.board[targetIndex] != nullptr) {
+            Mix_PlayChannel(-1, captureSound, 0);
+        }
     }
 
 }
