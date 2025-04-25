@@ -11,9 +11,10 @@ class Queen : public Piece {
     private:
         static std::array<const int, 8> offsets;
     public:
-        Queen(Color color, int position, Board * board) : Piece(color, PieceType::Queen, position, board) {}  
+        Queen(Color color, int position, Board * board) : Piece(color, PieceType::Queen, position, board, true) {}  
         ~Queen() {}
-        void computeValidMoves() override;
+        void computeMoves() override;
+        Piece * clone(Board* newBoard) const override;
 };
 
 #endif

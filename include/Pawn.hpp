@@ -9,15 +9,13 @@ class Board;
 
 class Pawn : public Piece {
     private:
-        bool doublePush; // Ensures that only in the first move you can move 2 squares up/down
+        
     public:
-        std::vector<int> forwardMoves;
-        Pawn(Color color, int position, Board * board) : Piece(color, PieceType::Pawn, position, board), doublePush(false) {}
+        Pawn(Color color, int position, Board * board, bool hasMoved) : Piece(color, PieceType::Pawn, position, board, hasMoved) {}
         ~Pawn() {}
-        void setDoublePush(bool state) {doublePush = state;}
-        void computeValidMoves() override;
-        bool isValidMove(int toIndex) override;
-        bool hasMoved() const {return doublePush;}
+        Piece * clone(Board* newBoard) const override;
+        void computeMoves() override;
+        
 };
 
 #endif

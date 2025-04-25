@@ -1,9 +1,16 @@
 #include "Board.hpp"
 #include "Pawn.hpp"
+#include "King.hpp"
 
-void Pawn::computeValidMoves() {
+Piece * Pawn::clone(Board* newBoard) const {
+    Piece * copy = new Pawn(getColor(), getPosition(), newBoard, getHasMoved());
+    copy->validMoves = validMoves;
+    return copy;
+}
+
+void Pawn::computeMoves() {
     validMoves.clear();
-    forwardMoves.clear();
+    //forwardMoves.clear();
     int fromIndex = getPosition();
     Color color = getColor();
 
@@ -18,13 +25,13 @@ void Pawn::computeValidMoves() {
     int targetIndex = fromIndex + forward;
     SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
     if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64)) {
-        forwardMoves.push_back(targetIndex);
+        validMoves.push_back(targetIndex);
 
         /* Double move forward */
         targetIndex = fromIndex + doubleForward;
         status = board->getSquareStatus(fromIndex, targetIndex);
-        if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64) && doublePush) {
-            forwardMoves.push_back(targetIndex);
+        if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64) && !getHasMoved()) {
+            validMoves.push_back(targetIndex);
         }
     }
 
@@ -34,7 +41,7 @@ void Pawn::computeValidMoves() {
     int colDiff = std::abs(nextCol - currentCol);
 
     status = board->getSquareStatus(fromIndex, targetIndex);
-    if ((status == SquareStatus::Enemy || status == SquareStatus::Empty) && colDiff == 1) {
+    if ((status == SquareStatus::Enemy) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
 
@@ -44,27 +51,8 @@ void Pawn::computeValidMoves() {
     colDiff = std::abs(nextCol - currentCol);
 
     status = board->getSquareStatus(fromIndex, targetIndex);
-    if ((status == SquareStatus::Enemy || status == SquareStatus::Empty) && colDiff == 1) {
+    if ((status == SquareStatus::Enemy) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
 
-}
-
-bool Pawn::isValidMove(int toIndex) {
-    bool isMoveValid = false;
-    for (int move : validMoves) {
-        if (move == toIndex && board->board[move] != nullptr) {
-            isMoveValid = true;
-            return isMoveValid;
-        }
-    }
-    
-    for (int forward : forwardMoves) {
-        if (forward == toIndex) {
-            isMoveValid = true; 
-            return isMoveValid;
-        }
-    }
-    
-    return isMoveValid;
 }

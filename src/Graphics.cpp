@@ -2,6 +2,7 @@
 
 /* Defined Headers */
 #include "Board.hpp"
+#include "King.hpp"
 #include "SDL_mixer.h"
 #include "Texture.hpp"
 #include "Piece.hpp"
@@ -335,15 +336,16 @@ void Graphics::updateWindow() {
 void Graphics::renderBoardSquare(int col, int row) {
     if (col < 0 || row < 0 || col >= COL || row >= ROW) return;   
 
-    SDL_Rect fillRect = {SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
+    int index = squareToIndex(row, col);
+    const SDL_Rect& fillRect = squares[index];
 
-    if ((row + col) % 2 == 0) {
+    if ((row + col) % 2 != 0) {
         SDL_SetRenderDrawColor(renderer, WHITE_SQUARE.r, WHITE_SQUARE.g, WHITE_SQUARE.b, WHITE_SQUARE.a);
     } else {
         SDL_SetRenderDrawColor(renderer, BLACK_SQUARE.r, BLACK_SQUARE.g, BLACK_SQUARE.b, BLACK_SQUARE.a);
     }
-			
-	SDL_RenderFillRect(renderer, &fillRect);
+
+    SDL_RenderFillRect(renderer, &fillRect);
 }
 
 void Graphics::renderMarkings() {
@@ -353,7 +355,7 @@ void Graphics::renderMarkings() {
     }
     /* Row Markings */
     for (int i = 0; i < ROW; ++i) {
-        boardNumbers[i].renderText(renderer, BORDER_SIZE/2 - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (SQUARE_SIZE/2 - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
+        boardNumbers[ROW - 1 - i].renderText(renderer, BORDER_SIZE/2 - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (SQUARE_SIZE/2 - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
     }
 }
 
@@ -377,30 +379,32 @@ void Graphics::renderPiece(const Board & board, int index) {
     
     Color color;
 	PieceType piece;
-	int row;
-	int column;
 
     if(board.board[index] != NULL) {
         color = board.board[index]->getColor();
         piece = board.board[index]->getType();
-        row = board.board[index]->getRow();
-        column = board.board[index]->getColumn();
         int pieceID = static_cast<int>(piece);
 
-        row = (ROW - 1) - row; /* Invert */
+        const SDL_Rect& dstRect = squares[index];
+
+        if(piece == PieceType::King) {
+            King * king = static_cast<King *>(board.board[index]);
+            if (king->getCheckStatus()) {
+                kingInCheck.renderTexture(renderer, dstRect.x, dstRect.y);
+            }
+        }
         
         if (color == Color::White)
-            whitePieces[pieceID].renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * column, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+            whitePieces[pieceID].renderTexture(renderer, dstRect.x, dstRect.y);
         
         if (color == Color::Black)
-            blackPieces[pieceID].renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * column, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+            blackPieces[pieceID].renderTexture(renderer, dstRect.x, dstRect.y);
     }
 }
 
 void Graphics::renderKingInCheck(int index) {
-    int col = indexToColumn(index);
-    int row = (ROW - 1) - indexToRow(index); /* Invert */
-    kingInCheck.renderTexture(renderer, SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1);
+    const SDL_Rect dstRect = squares[index];
+    kingInCheck.renderTexture(renderer, dstRect.x, dstRect.y);
     
 }
 
@@ -411,25 +415,20 @@ void Graphics::renderPieces(const Board & board) {
 }
 
 void Graphics::highlightSquare(int index) {
-    int col = indexToColumn(index);
-    int row = (ROW - 1) - indexToRow(index); /* Invert */
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, HIGHLIGHT.r, HIGHLIGHT.g, HIGHLIGHT.b, HIGHLIGHT.a);
-	SDL_Rect highlight = {SQUARE_SIZE * col + BORDER_SIZE - 1, SQUARE_SIZE * row + BORDER_SIZE - 1, SQUARE_SIZE, SQUARE_SIZE};
-	SDL_RenderFillRect(renderer, &highlight);
+	SDL_RenderFillRect(renderer, &squares[index]);
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 }
 
 void Graphics::highlightMove(int index) {
-    int col = indexToColumn(index);
-    int row = (ROW - 1) - indexToRow(index); /* Invert */
-    moveDot.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * col, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+    const SDL_Rect dstRect = squares[index];
+    moveDot.renderTexture(renderer, dstRect.x, dstRect.y);
 }
 
 void Graphics::highlightCapture(int index) {
-    int col = indexToColumn(index);
-    int row = (ROW - 1) - indexToRow(index); /* Invert */
-    capture.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * col, BORDER_SIZE - 1 + SQUARE_SIZE * row);
+    const SDL_Rect dstRect = squares[index];
+    capture.renderTexture(renderer, dstRect.x, dstRect.y);
 }
 
 void Graphics::highlightPossibleMoves(const Board & board, int index) {
@@ -441,17 +440,10 @@ void Graphics::highlightPossibleMoves(const Board & board, int index) {
         if (board.board[possibleMove] != nullptr) {
              highlightCapture(possibleMove);
         } else {
-            if(piece->getType() != PieceType::Pawn) highlightMove(possibleMove);
-        }
-    }
-    
-    /* Exception to Pawns */
-    if (piece->getType() == PieceType::Pawn) {
-        Pawn * pawn = static_cast<Pawn *>(piece);
-        for (int possibleMove : pawn->forwardMoves) {
             highlightMove(possibleMove);
         }
     }
+    
 }
 
 void Graphics::selectPiece(const Board & board, int index) {
@@ -512,14 +504,12 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
 
 void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toIndex) {
     int fromCol = indexToColumn(fromIndex);
-    int fromRow = (ROW - 1) - indexToRow(fromIndex);
-    int toCol = indexToColumn(toIndex);
-    int toRow = (ROW - 1) - indexToRow(toIndex);
+    int fromRow = indexToRow(fromIndex);
 
-    int startX = BORDER_SIZE - 1 + fromCol * SQUARE_SIZE;
-    int startY = BORDER_SIZE - 1 + fromRow * SQUARE_SIZE;
-    int endX = BORDER_SIZE - 1 + toCol * SQUARE_SIZE;
-    int endY = BORDER_SIZE - 1 + toRow * SQUARE_SIZE;
+    int startX = squares[fromIndex].x;
+    int startY = squares[fromIndex].y;
+    int endX = squares[toIndex].x;
+    int endY = squares[toIndex].y;
 
     Piece* movingPiece = board.board[fromIndex];
     if (!movingPiece) return;
@@ -551,7 +541,5 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
         updateWindow();
         SDL_Delay(frameDelay);
     }
-    if(board.board[toIndex] != nullptr) {
-        Mix_PlayChannel(-1, captureSound, 0);
-    } else Mix_PlayChannel(-1, moveSound, 0);
+    
 }

@@ -1,6 +1,7 @@
 #include "Board.hpp"
 #include "Rook.hpp"
 #include "King.hpp"
+#include <array>
 
 /* https://www.chessprogramming.org/Efficient_Generation_of_Sliding_Piece_Attacks
     +7    +8    +9
@@ -13,9 +14,16 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Rook::offsets = {-8, -1, +1, +8};
 
-void Rook::computeValidMoves() {
+Piece * Rook::clone(Board* newBoard) const {
+    Piece * copy = new Rook(getColor(), getPosition(), newBoard);
+    copy->validMoves = validMoves;
+    return copy;
+}
+
+void Rook::computeMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
+    std::vector<int> pseudoMoves;
 
     for (int offset : offsets) {
         int targetIndex = fromIndex;
@@ -27,8 +35,7 @@ void Rook::computeValidMoves() {
             /* Prevent wrap around */
             int nextCol = targetIndex % 8;
 
-            int colDiff = std::abs(nextCol - currentCol);
-            if (colDiff != 1 && colDiff != 0) break;
+            if ((offset == -1 || offset == 1) && std::abs(nextCol - currentCol) != 1) break;
 
             SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
@@ -36,14 +43,11 @@ void Rook::computeValidMoves() {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {
                 validMoves.push_back(targetIndex);
-                if (board->board[targetIndex]->getType() == PieceType::King && board->board[targetIndex]->getColor() != getColor()) {
-                    King * king = static_cast<King *>(board->board[targetIndex]);
-                    king->setCheck(true);
-                }
                 break;
             } else if (status == SquareStatus::Friendly) {
                 break;
             }
         }
     }
+
 }

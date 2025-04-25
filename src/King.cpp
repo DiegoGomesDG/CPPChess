@@ -9,17 +9,26 @@
     -9    -8    -7
 */
 
-King::King(Color color, int position, Board * board) : Piece(color, PieceType::King, position, board) {
+King::King(Color color, int position, Board * board, bool hasMoved) : Piece(color, PieceType::King, position, board, hasMoved) {
     kingSideCastle = false;
     queenSideCastle = false;
     inCheck = false;
-    hasMoved = false;
+}
+
+Piece * King::clone(Board* newBoard) const {
+    King * copy = new King(getColor(), getPosition(), newBoard, getHasMoved());
+    copy->kingSideCastle = kingSideCastle;
+    copy->queenSideCastle = queenSideCastle;
+    copy->inCheck = inCheck;
+    copy->validMoves = validMoves;
+
+    return static_cast<Piece *>(copy);
 }
 
 /* ##### Static Variables ##### */
 std::array<const int, 8> King::offsets = {-9, -8, -7, -1, +1, +7, +8, +9};
 
-void King::computeValidMoves() {
+void King::computeMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 

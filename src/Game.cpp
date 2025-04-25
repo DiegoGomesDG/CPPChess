@@ -3,13 +3,13 @@
 #include "SDL_events.h"
 #include "SDL_mixer.h"
 
+
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), wasClicked(false) {
-    board.loadFromFEN(fen);
+    board.loadFromFEN(fen); 
     graphics.clearWindow();
     graphics.loadMedia();
     graphics.renderBoardWithPieces(board);
     Mix_PlayChannel(-1, gameStartSound, 0);
-    
 }
 
 /* Works on basis of a High Level State Machine (Digital Design 1, 1st Semester) */
@@ -18,119 +18,141 @@ void ChessGame::handleEvent(SDL_Event & event) {
     SDL_GetMouseState(&mousePos.x, &mousePos.y);
 
     switch(event.type) {
-        case SDL_QUIT:
-            state = GameState::GameOver;
-            return;
+    
+    case SDL_QUIT:
+        state = GameState::GameOver;
+        return;
 
-        case SDL_MOUSEMOTION:
-            mousePos = {event.motion.x, event.motion.y};
-            if(leftMouseButtonDown && state == GameState::PieceSelected && focusIndex != -1) {
-                state = GameState::Dragging;
-                wasClicked = false;
-            }
+    case SDL_MOUSEMOTION:
+        mousePos = {event.motion.x, event.motion.y};
+        if(leftMouseButtonDown && state == GameState::PieceSelected && focusIndex != -1) {
+            state = GameState::Dragging;
+            wasClicked = false;
+        }
 
-            if(state == GameState::Dragging && focusIndex != -1) {
-                graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
-            }
-            break;
+        if(state == GameState::Dragging && focusIndex != -1) {
+            graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
+        }
+        break;
 
-        case SDL_MOUSEBUTTONDOWN:
-            if (!leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
-                leftMouseButtonDown = true;
+    case SDL_MOUSEBUTTONDOWN:
+        if (!leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
+            leftMouseButtonDown = true;
 
-                int col = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
-                int row = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
+            int col = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
+            int row = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
 
-                if (mousePos.x > BORDER_SIZE && mousePos.x < WIN_WIDTH - BORDER_SIZE && mousePos.y > BORDER_SIZE && mousePos.y < WIN_HEIGHT - BORDER_SIZE) {
-                    int clickedIndex = squareToIndex((ROW - 1) - row, col);
+            if (mousePos.x > BORDER_SIZE && mousePos.x < WIN_WIDTH - BORDER_SIZE && mousePos.y > BORDER_SIZE && mousePos.y < WIN_HEIGHT - BORDER_SIZE) {
+                int clickedIndex = squareToIndex((ROW - 1) - row, col);
 
-                    if (state == GameState::Idle) {
-                        Piece * piece = board.board[clickedIndex];
-                        if (piece && piece->getColor() == turn) {
-                            focusIndex = clickedIndex;
-                            state = GameState::PieceSelected;
+                if (state == GameState::Idle) {
+                    Piece * piece = board.board[clickedIndex];
+                    if (piece && piece->getColor() == turn) {
+                        focusIndex = clickedIndex;
+                        state = GameState::PieceSelected;
+                        board.validateMovesForPiece(focusIndex);
+                        graphics.selectPiece(board, focusIndex);
+                    }
+                } else if (state == GameState::PieceSelected) {
+                    targetIndex = clickedIndex;
+                    if (targetIndex == focusIndex) {
+                        /* Clicked Same Square Again */
+                        //state = GameState::Idle;
+                        //focusIndex = -1;
+                        //targetIndex = -1;
+                        //graphics.renderBoardWithPieces(board);
+                    } else {
+                        
+                        Piece * focusedPiece = board.board[focusIndex];
+                        Piece * targetPiece = board.board[targetIndex];
+                        
+                        if (targetPiece && targetPiece->getColor() == turn) {
+                            focusIndex = targetIndex;
+                            board.validateMovesForPiece(focusIndex);
                             graphics.selectPiece(board, focusIndex);
+                            return;
                         }
-                    } else if (state == GameState::PieceSelected) {
-                        targetIndex = clickedIndex;
-                        if (targetIndex == focusIndex) {
-                            /* Clicked Same Square Again */
+                        if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
+                            state = GameState::Processing;
+                            wasClicked = true;
+                            if(targetPiece != nullptr) {
+                                Mix_PlayChannel(-1, captureSound, 0);
+                            } else Mix_PlayChannel(-1, moveSound, 0);
+                        } else {
+                            /* Invalid move or empty square -> deselect */
                             state = GameState::Idle;
                             focusIndex = -1;
                             targetIndex = -1;
                             graphics.renderBoardWithPieces(board);
-                        } else {
-                            Piece * focusedPiece = board.board[focusIndex];
-                            Piece * targetPiece = board.board[targetIndex];
-                            if (targetPiece && targetPiece->getColor() == turn) {
-                                focusIndex = targetIndex;
-                                graphics.selectPiece(board, focusIndex);
-                                return;
-                            }
-                            
-                            if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
-                                state = GameState::Processing;
-                                wasClicked = true;
-                            } else {
-                                /* Invalid move or empty square -> deselect */
-                                state = GameState::Idle;
-                                focusIndex = -1;
-                                targetIndex = -1;
-                                graphics.renderBoardWithPieces(board);
-                            }
                         }
                     }
                 }
             }
-            break;        
+        }
+        break;        
 
-        case SDL_MOUSEBUTTONUP:
-            if(leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
-                leftMouseButtonDown = false;
+    case SDL_MOUSEBUTTONUP:
+        if(leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
+            leftMouseButtonDown = false;
+            
+            int dropCol = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
+            int dropRow = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
+
+            if(mousePos.x < (WIN_WIDTH + BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT + BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
+                targetIndex = squareToIndex((ROW - 1) - dropRow, dropCol);
+            } else {
+                targetIndex = -1;
+            }
+
+            if (state == GameState::Dragging && focusIndex != -1) {
+                Piece * piece = board.board[focusIndex];
                 
-                int dropCol = (mousePos.x - BORDER_SIZE) / SQUARE_SIZE;
-                int dropRow = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
-
-                if(mousePos.x < (WIN_WIDTH + BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT + BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
-                    targetIndex = squareToIndex((ROW - 1) - dropRow, dropCol);
+                if (targetIndex != -1 && piece != nullptr && piece->isValidMove(targetIndex)) {
+                    state = GameState::Processing;
                 } else {
-                    targetIndex = -1;
-                }
-
-                if (state == GameState::Dragging && focusIndex != -1) {
-                    Piece * piece = board.board[focusIndex];
-                    
-                    if (targetIndex != -1 && piece != nullptr && piece->isValidMove(targetIndex)) {
-                        state = GameState::Processing;
-                    } else {
-                        /* Invalid Drop, return to previous selection */
-                        state = GameState::PieceSelected;
-                        graphics.selectPiece(board, focusIndex);
-                        Mix_PlayChannel(-1, illegalMoveSound, 0);
-                    }
+                    /* Invalid Drop, return to previous selection */
+                    state = GameState::PieceSelected;
+                    graphics.selectPiece(board, focusIndex);
+                    Mix_PlayChannel(-1, illegalMoveSound, 0);
                 }
             }
-            break;
+        }
+        break;
 
     }
 
     if (state == GameState::Processing && focusIndex != -1 && targetIndex != -1) {
-        if (wasClicked) {
-            graphics.animatePieceMoving(board, focusIndex, targetIndex);
-        }
-        board.movePiece(focusIndex, targetIndex);
-        
-        turn = (turn == Color::White) ? Color::Black : Color::White;
+        if (board.validateMove(focusIndex, targetIndex)) {
+            // Animate the move if it was a click (not drag)
+            if (wasClicked) {
+                graphics.animatePieceMoving(board, focusIndex, targetIndex);
+                wasClicked = false;
+            }
 
-        /* Reset */
+            // Execute the move on the logical board
+            if (board.movePiece(focusIndex, targetIndex)) {
+                // Is King (of the main board, not copies) in Check?
+                
+                // Switch turns
+                turn = (turn == Color::White) ? Color::Black : Color::White;
+                if(board.isKingInCheck(turn)) {
+                    Mix_PlayChannel(-1, moveCheckSound, 0);
+                }
+                // Update the board display
+                graphics.renderBoardWithPieces(board);
+            } else {
+                // Handle invalid move (should not happen as we validated earlier)
+                Mix_PlayChannel(-1, illegalMoveSound, 0);
+            }
+        } else {
+            // Handle invalid move
+            Mix_PlayChannel(-1, illegalMoveSound, 0);
+        }
+
+        // Reset state
+        state = GameState::Idle;
         focusIndex = -1;
         targetIndex = -1;
-        wasClicked = false;
-        state = GameState::Idle;
-        graphics.renderBoardWithPieces(board);
-        if(board.board[targetIndex] != nullptr) {
-            Mix_PlayChannel(-1, captureSound, 0);
-        }
     }
 
 }

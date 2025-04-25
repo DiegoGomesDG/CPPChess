@@ -15,8 +15,15 @@
 /* ##### Static Variables ##### */
 std::array<const int, 8> Knight::offsets = {-17, -15, -10, -6, 6, 10, 15, 17};
 
-void Knight::computeValidMoves() {
+Piece * Knight::clone(Board* newBoard) const {
+    Piece * copy = new Knight(color, position, newBoard);
+    copy->validMoves = validMoves;
+    return copy;
+}
+
+void Knight::computeMoves() {
     validMoves.clear();
+    
     int fromIndex = getPosition();
     int fromRow = fromIndex / 8;
     int fromCol = fromIndex % 8;
@@ -39,10 +46,7 @@ void Knight::computeValidMoves() {
         SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
         if (status == SquareStatus::Empty || status == SquareStatus::Enemy) {
             validMoves.push_back(targetIndex);
-            if (board->board[targetIndex]->getType() == PieceType::King && board->board[targetIndex]->getColor() != getColor()) {
-                King * king = static_cast<King *>(board->board[targetIndex]);
-                king->setCheck(true);
-            }
         }
     }
+
 }

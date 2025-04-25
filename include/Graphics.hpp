@@ -42,7 +42,6 @@ class Graphics {
         SDL_Renderer * renderer;
         static bool instantiated; /* https://gameprogrammingpatterns.com/singleton.html */
         std::array<SDL_Rect, 64> squares;
-
     public:
         /* RAII Technique - Resource Acquisition Is Initialization */
         Graphics();

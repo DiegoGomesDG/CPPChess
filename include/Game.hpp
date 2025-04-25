@@ -26,6 +26,7 @@ class ChessGame {
         ChessGame(const std::string& fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq");
 
         void setTurn(Color color) {turn = color;}
+        Color getTurn() const {return turn;}
 
         void handleEvent(SDL_Event & event);
         bool isGameOver() const {return state == GameState::GameOver;}

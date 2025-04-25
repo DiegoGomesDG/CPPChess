@@ -1,8 +1,8 @@
-
 #include "../include/Game.hpp"
 
 //Using SDL here for the SDL_Event
 #include <SDL2/SDL.h>
+/* find src include -name "*.cpp" -o -name "*.hpp" | xargs wc -l */
 
 int main(int argc, char* argv[]) {
 	

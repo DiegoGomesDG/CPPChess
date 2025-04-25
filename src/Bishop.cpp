@@ -2,6 +2,7 @@
 #include "King.hpp"
 #include "Piece.hpp"
 #include "Bishop.hpp"
+#include <iostream>
 
 /* https://www.chessprogramming.org/Efficient_Generation_of_Sliding_Piece_Attacks
     +7    +8    +9
@@ -14,10 +15,17 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Bishop::offsets = {-9, -7, +7, +9};
 
-void Bishop::computeValidMoves() {
+Piece * Bishop::clone(Board* newBoard) const {
+    Piece * copy = new Bishop(getColor(), getPosition(), newBoard);
+    copy->validMoves = validMoves;
+    return copy;
+}
+
+void Bishop::computeMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 
+    /* Generate all pseudolegal moves (without considering checks)*/
     for (int offset : offsets) {
         int targetIndex = fromIndex;
         while(true) {
@@ -37,14 +45,11 @@ void Bishop::computeValidMoves() {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {   
                 validMoves.push_back(targetIndex);
-                if (board->board[targetIndex]->getType() == PieceType::King && board->board[targetIndex]->getColor() != getColor()) {
-                    King * king = static_cast<King *>(board->board[targetIndex]);
-                    king->setCheck(true);
-                }
                 break;
             } else if (status == SquareStatus::Friendly) {
                 break;
             }
         }
     }
+
 }

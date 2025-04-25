@@ -2,6 +2,7 @@
 #include <cctype>
 #include <iostream>
 #include <sstream>
+#include <cstdlib>
 
 /* Include other defined headers */
 #include "Board.hpp"
@@ -45,13 +46,31 @@ int indexToColumn(int index) {
     return index % COL;
 }
 
-Board::Board(ChessGame * game) : game(game) {
+Board::Board(ChessGame * game) : game(game), validMove(false), isChecked(false) {
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
         board[i] = nullptr;
         whiteAttackBoard[i] = 0;
         blackAttackBoard[i] = 0;
     }
+    whiteKing = nullptr;
+    blackKing = nullptr;
+}
+
+Board::Board(const Board & original) {
+     // Deep copy pieces
+     for (int i = 0; i < 64; ++i) {
+        board[i] = original.board[i] ? original.board[i]->clone(this) : nullptr;
+        if (board[i] && board[i]->getType() == PieceType::King) {
+            if (board[i]->getColor() == Color::White) whiteKing = static_cast<King *>(board[i]);
+            else blackKing = static_cast<King *>(board[i]);
+        }
+    }
+    // Copy attack boards
+    whiteAttackBoard = original.whiteAttackBoard;
+    blackAttackBoard = original.blackAttackBoard;
+    
+    game = nullptr;
 }
 
 Board::~Board() {
@@ -64,17 +83,20 @@ void Board::clearBoard() {
         board[i] = nullptr;
         whiteAttackBoard[i] = 0;
         blackAttackBoard[i] = 0;
+        
     }
+    whiteKing = nullptr;
+    blackKing = nullptr;
 }
 
 Piece* Board::createPiece(PieceType type, Color color, int position) {
     switch(type) {
-        case PieceType::King: return new King(color, position, this);
+        case PieceType::King: return new King(color, position, this, false);
         case PieceType::Queen: return new Queen(color, position, this);
         case PieceType::Rook: return new Rook(color, position, this);
         case PieceType::Bishop: return new Bishop(color, position, this);
         case PieceType::Knight: return new Knight(color, position, this);
-        case PieceType::Pawn: return new Pawn(color, position, this);
+        case PieceType::Pawn: return new Pawn(color, position, this, false);
         default: return nullptr; // Implement error handling
     }
 }
@@ -95,12 +117,11 @@ bool Board::loadFromFEN(const std::string & fen) {
 
     int row = (ROW - 1); /* Starts from the 8th row/rank */
     int col = 0; /* Starts from the 0th column/file */
-
     int index;
 
     /* Store the address of the White and Black King to setup the castling rights LATER */
-    King * whiteKing = nullptr;
-    King * blackKing = nullptr;
+    whiteKing = nullptr;
+    blackKing = nullptr;
 
     for (char c : piecePlacement) {
         
@@ -138,7 +159,7 @@ bool Board::loadFromFEN(const std::string & fen) {
             /* Two square moving rights for pawns */
             if ((row == 1 || row == 6) && type == PieceType::Pawn) {
                 Pawn * pawn = static_cast<Pawn *>(board[index]);
-                pawn->setDoublePush(true);
+                pawn->setHasMoved(false);
             }
 
             if (type == PieceType::King && color == Color::White) whiteKing = static_cast<King *>(board[index]);
@@ -155,27 +176,31 @@ bool Board::loadFromFEN(const std::string & fen) {
     
     /* Castling Rights */
     if (whiteKing && blackKing) {
-        whiteKing->setKingSideCastleRight(castlingRights.find('K') != std::string::npos);
-        whiteKing->setQueenSideCastleRight(castlingRights.find('Q') != std::string::npos);
-        blackKing->setKingSideCastleRight(castlingRights.find('k') != std::string::npos);
-        blackKing->setQueenSideCastleRight(castlingRights.find('q') != std::string::npos);
-    }
-
-    std::cout << std::endl << static_cast<int>(turn) << std::endl;
+        if (castlingRights.find('K') != std::string::npos) {
+            static_cast<King *>(whiteKing)->setKingSideCastleRight(true);
+            if(board[7] != nullptr) board[7]->setHasMoved(false);
+        }
+        if(castlingRights.find('Q') != std::string::npos) {
+            static_cast<King *>(whiteKing)->setQueenSideCastleRight(true);
+            if(board[0] != nullptr) board[0]->setHasMoved(false);
+        }
+        if(castlingRights.find('k') != std::string::npos) {
+            static_cast<King *>(blackKing)->setKingSideCastleRight(true);
+            if(board[63] != nullptr) board[63]->setHasMoved(false);
+        }
+        if(castlingRights.find('q') != std::string::npos) {
+            static_cast<King *>(blackKing)->setQueenSideCastleRight(true);
+            if(board[56] != nullptr) board[56]->setHasMoved(false);
+        }
+    } else return false;
 
     /* Precompute valid moves */
-    for (Piece * piece : board) {
-        if (piece != nullptr)
-            piece->computeValidMoves();
-    }    
-
-    /* Compute attack boards*/
-    computeAttackBoards();
-    printAttackBoards();
+    computeAllMoves();
+    computeAttackBoards();    
 
     /* Recompute attack board for Kings */
-    whiteKing->computeValidMoves();
-    blackKing->computeValidMoves();
+    whiteKing->computeMoves();
+    blackKing->computeMoves();
 
     return true;
 }
@@ -199,102 +224,199 @@ void Board::computeAttackBoards() {
         blackAttackBoard[i] = 0;
     }
 
-    for (Piece * piece : board) {
-    if (piece != nullptr)
-        for (int index : piece->validMoves) {
-            switch (piece->getColor()) {
-                case Color::White: whiteAttackBoard[index] = 1; break;
-                case Color::Black: blackAttackBoard[index] = 1; break;
-                default: break;
+    for(int i = 0; i < 64; ++i) {
+        if (board[i] != nullptr) {
+            Color pieceColor = board[i]->getColor();
+            for (int target : board[i]->validMoves) {
+                if (pieceColor == Color::White) {
+                    whiteAttackBoard[target] = 1;
+                } else {
+                    blackAttackBoard[target] = 1;
+                }
             }
-                    
-        }
-
-    }    
-}
-
-void Board::printAttackBoards() {
-   
-    std::cout << std::endl << std::endl << std::endl;
-    int row = 7, col = 0;
-    int index;
-    
-    while (!(row == 0 && col == 8)) {
-        index = squareToIndex(row, col);
-        if (whiteAttackBoard[index])
-            std::cout << "* ";
-        else std::cout << "_ ";
-    
-        ++col;
-        if(col == 8 && row != 0) {
-            std::cout << std::endl;
-            col = 0;
-            if (row >= 0) row--;
         }
     }
-        std::cout << std::endl << "----------------" << std::endl;
-
-    row = 7; col = 0;
-    while (!(row == 0 && col == 8)) {
-        index = squareToIndex(row, col);
-        if (blackAttackBoard[index])
-            std::cout << "* ";
-        else std::cout << "_ ";
     
-        ++col;
-        if(col == 8 && row != 0) {
-            std::cout << std::endl;
-            col = 0;
-            if (row >= 0) row--;
-        }
-    }
-        std::cout << std::endl;
 }
 
-void Board::movePiece(int fromIndex, int toIndex) {
+/* This method generates all moves, valid or invalid (pseudolegal moves) */
+void Board::computeAllMoves() {
+    // Clear all existing moves first
+    system("clear");
+    std::cerr << "Found piece, computing moves... ";
+    for (int i = 0; i < 64; i++) {
+        if (board[i] != nullptr) {
+            board[i]->validMoves.clear();
+        }
+    }
     
-    /* Retrieve the Moving Piece, check if it is not null */
-    Piece * movingPiece = board[fromIndex];
-    if (movingPiece == nullptr) return;
+    // Compute moves for each piece
+    for (int i = 0; i < 64; i++) {
+        std::cerr << "Checking square " << i << "... ";
+        if (board[i] != nullptr) {
+            std::cerr << "Found piece, computing moves... ";
+            board[i]->computeMoves();
+            std::cerr << "Done.\n";
+        } else std::cerr << "Empty square.\n";
+    }
+    std::cerr << "Finished computeAllValidMoves()\n";
+}
 
-    //movingPiece->computeValidMoves();
+/* This method is responsible for VALIDATING the move */
+void Board::validateMovesForPiece(int position) {
+    if (position < 0 || position > 63) return;
+    Piece * piece = board[position];
+    if (!piece) return;
 
-    /* Check if the move is valid */
-    bool isMoveValid = movingPiece->isValidMove(toIndex);
-    if (!isMoveValid) return;
+    // Get all pseudolegal moves first
+    std::vector<int> pseudolegalMoves;
+    piece->computeMoves();  // Generates pseudolegal moves
+    pseudolegalMoves = piece->validMoves;
+    std::vector<int> legalMoves;
+    
+    /* Validate each move */
+    for (int target : pseudolegalMoves) {
+        /* Create a temporary board copy */
+        if(validateMove(position, target)) {
+            legalMoves.push_back(target);
+        }
+    }
 
-    /* Handle PIECE CAPTURE. If the piece at toIndex is not null, it means there is some piece, which should be deleted */
+    piece->validMoves = legalMoves;
+}
+
+bool Board::validateMove(int fromIndex, int toIndex) {
+    /* Checks if the indexes are within the bounds */
+    validMove = false;
+    if (fromIndex < 0 || fromIndex >= 64 || toIndex < 0 || toIndex >= 64)
+        return false;
+    Piece* movingPiece = board[fromIndex];
+    if (!movingPiece) return false;
+
+    /* Prevent KING CAPTURE */
     Piece * targetPiece = board[toIndex];
-    if (targetPiece != nullptr && targetPiece->getType() != PieceType::King)
-        delete targetPiece;
+    if (targetPiece && targetPiece->getType() == PieceType::King)
+        return false;
 
-    /* Move Piece */
-    board[toIndex] = movingPiece;
-    board[fromIndex] = nullptr;
-    movingPiece->setPosition(toIndex);
-
-    /* TEMPORARY: Removes the ability to have double forward moves. There should be a better way to do it... */
-    if(movingPiece->getType() == PieceType::Pawn) {
-        Pawn * pawn = static_cast<Pawn *>(movingPiece);
-        pawn->setDoublePush(false);
-    }
-
-    /* Recompute the valid moves */
-    Piece * whiteKing = nullptr;
-    Piece * blackKing = nullptr;
-    for (Piece * piece : board) {
-        if (piece != nullptr) {
-            piece->computeValidMoves();
-            if (piece->getType() == PieceType::King) {
-                if(piece->getColor() == Color::White) whiteKing = piece;
-                if(piece->getColor() == Color::Black) blackKing = piece;
-            }
+    // 3. Create temporary board for validation
+    Board tempBoard(*this);
+    
+    // 4. Simulate move on temporary board
+    if (tempBoard.board[toIndex] && tempBoard.board[toIndex]->getType() != PieceType::King) delete tempBoard.board[toIndex];
+    tempBoard.board[toIndex] = tempBoard.board[fromIndex];
+    tempBoard.board[fromIndex] = nullptr;
+    tempBoard.board[toIndex]->setPosition(toIndex);
+    
+    
+    // 5. Update king pointers in temp board if needed
+    if (movingPiece->getType() == PieceType::King) {
+        if (movingPiece->getColor() == Color::White) {
+            tempBoard.whiteKing = static_cast<King*>(tempBoard.board[toIndex]);
+        } else {
+            tempBoard.blackKing = static_cast<King*>(tempBoard.board[toIndex]);
         }
-            
-        
     }
-    /* Recompute attack boards */
+    
+
+    // 6. Validate move doesn't leave king in check
+    tempBoard.computeAllMoves();
+    tempBoard.computeAttackBoards();
+    
+    if (tempBoard.isKingInCheck(movingPiece->getColor())) {
+        validMove = false;
+        return false; // Move would leave king in check
+    } else {
+        validMove = true;
+        return true;
+    }
+}
+
+bool Board::movePiece(int fromIndex, int toIndex) {
+    
+    if(!validMove)
+        return false;
+
+    /* Checks if the indexes are within the bounds */
+    if (fromIndex < 0 || fromIndex >= 64 || toIndex < 0 || toIndex >= 64)
+        return false;
+    Piece* movingPiece = board[fromIndex];
+    if (!movingPiece) return false;
+
+    /* Prevent KING CAPTURE */
+    Piece * targetPiece = board[toIndex];
+    if (targetPiece && targetPiece->getType() == PieceType::King)
+        return false;
+
+    // 7. Execute real move (passed validation)
+    if (targetPiece && targetPiece->getType() != PieceType::King) delete targetPiece;
+    board[fromIndex] = nullptr;
+    board[toIndex] = movingPiece;
+    movingPiece->setPosition(toIndex);
+    movingPiece->setHasMoved(true);
+
+    // 8. Update king pointers if needed
+    if (movingPiece->getType() == PieceType::King) {
+        if (movingPiece->getColor() == Color::White) {
+            whiteKing = static_cast<King*>(movingPiece);
+            
+        } else {
+            blackKing = static_cast<King*>(movingPiece);
+            
+        }
+    }
+
+    // 9. Update game state
+    computeAllMoves();
     computeAttackBoards();
-    whiteKing->computeValidMoves();
-    blackKing->computeValidMoves();
+    whiteKing->computeMoves();
+    blackKing->computeMoves();
+
+    /* Reset validMove flag */
+    validMove = false;
+
+    /* Reset check status after a move... */
+     // 9. Update game state
+    computeAllMoves();
+    computeAttackBoards();
+    whiteKing->computeMoves();
+    blackKing->computeMoves();
+
+    /* Reset validMove flag */
+    validMove = false;
+
+    /* Reset check status after a move... */
+    if (movingPiece->getType() == PieceType::King) {
+        whiteKing->setCheck(false);
+        blackKing->setCheck(false);
+    } else {
+        bool whiteInCheck = isKingInCheck(Color::White);
+        bool blackInCheck = isKingInCheck(Color::Black);
+        whiteKing->setCheck(whiteInCheck);
+        blackKing->setCheck(blackInCheck);
+    }
+    
+
+    return true;
+
+}
+
+bool Board::isKingInCheck(Color color) {
+    King * king = (color == Color::White) ? static_cast<King *>(whiteKing) : static_cast<King *>(blackKing);
+    if (king == nullptr) return false;
+    king->setCheck(false);
+    isChecked = false;
+
+    int kingPos = king->getPosition();
+    bool isAttacked;
+    if (color == Color::White) {
+        isAttacked = (blackAttackBoard[kingPos] != 0);
+        if (isAttacked) king->setCheck(true);
+        else king->setCheck(false);
+    } else {
+        isAttacked = (whiteAttackBoard[kingPos] != 0);
+        if (isAttacked) king->setCheck(true);
+        else king->setCheck(false);
+    }
+    if (isAttacked) isChecked = true;
+    return isAttacked;
 }

@@ -12,16 +12,19 @@ class King : public Piece {
         bool kingSideCastle;
         bool queenSideCastle;
         bool inCheck;
-        bool hasMoved;
         static std::array<const int, 8> offsets;
     public:
-        King(Color color, int position, Board * board);
+        King(Color color, int position, Board * board, bool hasMoved);
         ~King() {}
+        Piece * clone(Board* newBoard) const override;
+
         void setKingSideCastleRight(bool state) {kingSideCastle = state;}
         void setQueenSideCastleRight(bool state) {queenSideCastle = state;}
         void setCheck(bool state) {inCheck = state;}
         
-        void computeValidMoves() override;
+        bool getCheckStatus() const {return inCheck;}
+
+        void computeMoves() override;
 
 };
 
