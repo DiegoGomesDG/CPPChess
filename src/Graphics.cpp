@@ -28,6 +28,7 @@ const SDL_Color BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
 const SDL_Color BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
 const SDL_Color HIGHLIGHT = {0x7F, 0x17, 0x1F, 0x80};
 const SDL_Color BOARD_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
+const SDL_Color STATUS_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
 
 /* Move Animations */
 const int durationMs = 100;
@@ -55,8 +56,11 @@ Mix_Chunk * illegalMoveSound = nullptr;
 /* From: chess.com - https://www.chess.com/forum/view/general/chessboard-sound-files?page=2 */
 
 /* Fonts */
-const int baseFontSize = 24;
+const int boardMarkingsFontSize = 24;
+const int statusFontSize = 36;
+
 TTF_Font * boardFont;
+TTF_Font * statusFont;
 
 /* ##### Static Variables ##### */
 bool Graphics::instantiated = false;
@@ -300,10 +304,16 @@ bool Graphics::loadMedia() {
     }
 
     /* Load Necessary Fonts */
-    int scaledFontSize = baseFontSize * scaleY;
+    int scaledFontSize = boardMarkingsFontSize * scaleY;
     boardFont = TTF_OpenFont("../assets/fonts/Fira_Sans/FiraSans-Medium.ttf", scaledFontSize);
-    
     if (boardFont == nullptr) {
+        std::cerr << "Failure to load boardFont! SDL_ttf Error: " << TTF_GetError() << std::endl;
+        success = false;
+    }
+
+    scaledFontSize = statusFontSize * scaleY;
+    statusFont = TTF_OpenFont("../assets/fonts/Fira_Sans/FiraSans-Medium.ttf", scaledFontSize);
+    if (statusFont == nullptr) {
         std::cerr << "Failure to load boardFont! SDL_ttf Error: " << TTF_GetError() << std::endl;
         success = false;
     }
@@ -437,7 +447,7 @@ void Graphics::highlightPossibleMoves(const Board & board, int index) {
     Piece * piece = board.board[index];
 
     for (int possibleMove : piece->validMoves) {
-        if (board.board[possibleMove] != nullptr) {
+        if (board.board[possibleMove] != nullptr || possibleMove == board.getEnPassantIndex()) {
              highlightCapture(possibleMove);
         } else {
             highlightMove(possibleMove);
@@ -542,4 +552,23 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
         SDL_Delay(frameDelay);
     }
     
+}
+
+void Graphics::printStatusText(const Board & board, std::string & text) {
+    /* First, render the board normally */
+    clearWindow();
+    renderBoard();
+	renderPieces(board);
+
+    /* Then, create the texture and render the text*/
+    Texture renderText;
+    renderText.loadFromRenderedText(renderer, boardFont, text, STATUS_TEXT);
+
+    /* Center text*/
+    int x = (WIN_WIDTH - renderText.getWidth())/2;
+    int y = (WIN_HEIGHT - renderText.getHeight())/2;
+
+    renderText.renderText(renderer, x, y);
+    SDL_Delay(1000);
+    updateWindow();
 }

@@ -44,6 +44,10 @@ void Pawn::computeMoves() {
     if ((status == SquareStatus::Enemy) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
+    if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == board->getEnPassantIndex()) {
+        validMoves.push_back(targetIndex);
+    }
+
 
     /* Capture to Right */
     targetIndex = fromIndex + captureRight;
@@ -52,6 +56,9 @@ void Pawn::computeMoves() {
 
     status = board->getSquareStatus(fromIndex, targetIndex);
     if ((status == SquareStatus::Enemy) && colDiff == 1) {
+        validMoves.push_back(targetIndex);
+    }
+    if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == board->getEnPassantIndex()) {
         validMoves.push_back(targetIndex);
     }
 

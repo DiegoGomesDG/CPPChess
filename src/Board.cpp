@@ -46,7 +46,7 @@ int indexToColumn(int index) {
     return index % COL;
 }
 
-Board::Board(ChessGame * game) : game(game), validMove(false), isChecked(false) {
+Board::Board(ChessGame * game) : game(game), enPassantIndex(-1), validMove(false) {
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
         board[i] = nullptr;
@@ -69,7 +69,11 @@ Board::Board(const Board & original) {
     // Copy attack boards
     whiteAttackBoard = original.whiteAttackBoard;
     blackAttackBoard = original.blackAttackBoard;
-    
+
+    /* Copying enPassant */
+    enPassantIndex = original.getEnPassantIndex();
+
+    /* Game Pointer is not necessary */
     game = nullptr;
 }
 
@@ -242,8 +246,8 @@ void Board::computeAttackBoards() {
 /* This method generates all moves, valid or invalid (pseudolegal moves) */
 void Board::computeAllMoves() {
     // Clear all existing moves first
-    system("clear");
-    std::cerr << "Found piece, computing moves... ";
+    //system("clear");
+    //std::cerr << "Found piece, computing moves... ";
     for (int i = 0; i < 64; i++) {
         if (board[i] != nullptr) {
             board[i]->validMoves.clear();
@@ -252,14 +256,14 @@ void Board::computeAllMoves() {
     
     // Compute moves for each piece
     for (int i = 0; i < 64; i++) {
-        std::cerr << "Checking square " << i << "... ";
+        //std::cerr << "Checking square " << i << "... ";
         if (board[i] != nullptr) {
-            std::cerr << "Found piece, computing moves... ";
+            //std::cerr << "Found piece, computing moves... ";
             board[i]->computeMoves();
-            std::cerr << "Done.\n";
-        } else std::cerr << "Empty square.\n";
+            //std::cerr << "Done.\n";
+        } //else std::cerr << "Empty square.\n";
     }
-    std::cerr << "Finished computeAllValidMoves()\n";
+    //std::cerr << "Finished computeAllValidMoves()\n";
 }
 
 /* This method is responsible for VALIDATING the move */
@@ -342,6 +346,23 @@ bool Board::movePiece(int fromIndex, int toIndex) {
     Piece* movingPiece = board[fromIndex];
     if (!movingPiece) return false;
 
+    /* Determine move type */
+    bool normalMove = true;
+    bool enPassantCapture = false;
+    if (movingPiece->getType() == PieceType::Pawn && toIndex == enPassantIndex) {
+        enPassantCapture = true;
+        normalMove = true; /* Because it moves normally */
+    }
+
+    bool castlingMove = false;
+    if (movingPiece->getType() == PieceType::King && std::abs(toIndex - fromIndex) == 2) {
+        if (movingPiece->getColor() == Color::White) castlingMove = whiteKing->hasCastleRights();
+        else {castlingMove = blackKing->hasCastleRights();}
+        
+        if (castlingMove) normalMove = false;
+    }
+
+
     /* Prevent KING CAPTURE */
     Piece * targetPiece = board[toIndex];
     if (targetPiece && targetPiece->getType() == PieceType::King)
@@ -349,21 +370,70 @@ bool Board::movePiece(int fromIndex, int toIndex) {
 
     // 7. Execute real move (passed validation)
     if (targetPiece && targetPiece->getType() != PieceType::King) delete targetPiece;
-    board[fromIndex] = nullptr;
-    board[toIndex] = movingPiece;
-    movingPiece->setPosition(toIndex);
-    movingPiece->setHasMoved(true);
+
+    if (enPassantCapture) {
+        int capturedPawnIndex = (movingPiece->getColor() == Color::White) ? toIndex - 8 : toIndex + 8;
+        delete board[capturedPawnIndex];          // Delete the pawn
+        board[capturedPawnIndex] = nullptr;       // Clear the pointer
+    }
+
+    if (normalMove) {
+        board[fromIndex] = nullptr;
+        board[toIndex] = movingPiece;
+        movingPiece->setPosition(toIndex);
+        movingPiece->setHasMoved(true);
+    }
+    
+    if(castlingMove) {
+        Piece * rook = nullptr;
+        /* King Side Castling */
+        if (toIndex - fromIndex == 2) {
+            board[fromIndex] = nullptr;
+            board[fromIndex + 2] = movingPiece;
+            rook = board[fromIndex + 3];
+            board[fromIndex + 3] = nullptr;
+            board[fromIndex + 1] = rook;
+
+            movingPiece->setHasMoved(true); rook->setHasMoved(true);
+            movingPiece->setPosition(toIndex); rook->setPosition(toIndex - 1);
+        }
+
+        if (toIndex - fromIndex == -2) {
+            board[fromIndex] = nullptr;
+            board[fromIndex - 2] = movingPiece;
+            rook = board[fromIndex - 4];
+            board[fromIndex - 4] = nullptr;
+            board[fromIndex - 1] = rook;
+
+            movingPiece->setHasMoved(true); rook->setHasMoved(true);
+            movingPiece->setPosition(toIndex); rook->setPosition(toIndex + 1);
+        }
+    }
+    
 
     // 8. Update king pointers if needed
     if (movingPiece->getType() == PieceType::King) {
         if (movingPiece->getColor() == Color::White) {
             whiteKing = static_cast<King*>(movingPiece);
-            
         } else {
             blackKing = static_cast<King*>(movingPiece);
-            
         }
     }
+
+    // ##### Generate the enPassantIndex if a pawn moved twice #####
+    if (movingPiece && movingPiece->getType() == PieceType::Pawn) {
+        int distance = toIndex - fromIndex;
+        if (distance == 16 || distance == -16) {
+            if (movingPiece->getColor() == Color::White) enPassantIndex = toIndex - 8;
+            else enPassantIndex = toIndex + 8;
+            
+        } else {
+            enPassantIndex = -1;
+        }
+    } else {
+        enPassantIndex = -1;
+    }
+    std::cerr << "enPassantIndex: " << enPassantIndex << std::endl;
 
     // 9. Update game state
     computeAllMoves();
@@ -404,7 +474,6 @@ bool Board::isKingInCheck(Color color) {
     King * king = (color == Color::White) ? static_cast<King *>(whiteKing) : static_cast<King *>(blackKing);
     if (king == nullptr) return false;
     king->setCheck(false);
-    isChecked = false;
 
     int kingPos = king->getPosition();
     bool isAttacked;
@@ -417,6 +486,5 @@ bool Board::isKingInCheck(Color color) {
         if (isAttacked) king->setCheck(true);
         else king->setCheck(false);
     }
-    if (isAttacked) isChecked = true;
     return isAttacked;
 }

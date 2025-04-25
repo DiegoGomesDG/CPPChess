@@ -1,8 +1,8 @@
 #include "Game.hpp"
 #include "Graphics.hpp"
+#include "Piece.hpp"
 #include "SDL_events.h"
 #include "SDL_mixer.h"
-
 
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), wasClicked(false) {
     board.loadFromFEN(fen); 
@@ -13,6 +13,10 @@ ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(thi
 }
 
 /* Works on basis of a High Level State Machine (Digital Design 1, 1st Semester) */
+void ChessGame::handleStateTransition() {
+    
+}
+
 void ChessGame::handleEvent(SDL_Event & event) {
     SDL_Point mousePos;
     SDL_GetMouseState(&mousePos.x, &mousePos.y);
@@ -62,7 +66,6 @@ void ChessGame::handleEvent(SDL_Event & event) {
                         //targetIndex = -1;
                         //graphics.renderBoardWithPieces(board);
                     } else {
-                        
                         Piece * focusedPiece = board.board[focusIndex];
                         Piece * targetPiece = board.board[targetIndex];
                         
@@ -75,9 +78,9 @@ void ChessGame::handleEvent(SDL_Event & event) {
                         if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
                             state = GameState::Processing;
                             wasClicked = true;
-                            if(targetPiece != nullptr) {
-                                Mix_PlayChannel(-1, captureSound, 0);
-                            } else Mix_PlayChannel(-1, moveSound, 0);
+                            //if(targetPiece != nullptr) {
+                            //    Mix_PlayChannel(-1, captureSound, 0);
+                            //} else Mix_PlayChannel(-1, moveSound, 0);
                         } else {
                             /* Invalid move or empty square -> deselect */
                             state = GameState::Idle;
@@ -122,6 +125,8 @@ void ChessGame::handleEvent(SDL_Event & event) {
     }
 
     if (state == GameState::Processing && focusIndex != -1 && targetIndex != -1) {
+        Piece * focusedPiece = board.board[focusIndex];
+        Piece * targetPiece = board.board[targetIndex];
         if (board.validateMove(focusIndex, targetIndex)) {
             // Animate the move if it was a click (not drag)
             if (wasClicked) {
@@ -129,14 +134,25 @@ void ChessGame::handleEvent(SDL_Event & event) {
                 wasClicked = false;
             }
 
+            /* Play the capture sound if it is an en-passant */
+            if(targetIndex == board.getEnPassantIndex())
+                Mix_PlayChannel(-1, captureSound, 0);
+
+
             // Execute the move on the logical board
             if (board.movePiece(focusIndex, targetIndex)) {
-                // Is King (of the main board, not copies) in Check?
-                
                 // Switch turns
                 turn = (turn == Color::White) ? Color::Black : Color::White;
                 if(board.isKingInCheck(turn)) {
                     Mix_PlayChannel(-1, moveCheckSound, 0);
+                } else {
+                    if(targetPiece != nullptr) {
+                        Mix_PlayChannel(-1, captureSound, 0);
+                    } else if (abs(targetIndex - focusIndex) == 2 && focusedPiece->getType() == PieceType::King) {
+                        Mix_PlayChannel(-1, castleSound, 0);
+                    } else {
+                        Mix_PlayChannel(-1, moveSound, 0);
+                    }
                 }
                 // Update the board display
                 graphics.renderBoardWithPieces(board);
@@ -153,6 +169,9 @@ void ChessGame::handleEvent(SDL_Event & event) {
         state = GameState::Idle;
         focusIndex = -1;
         targetIndex = -1;
+
+        std::string text = "White Wins";
+        graphics.printStatusText(board, text);
     }
 
 }

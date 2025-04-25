@@ -23,8 +23,10 @@ class King : public Piece {
         void setCheck(bool state) {inCheck = state;}
         
         bool getCheckStatus() const {return inCheck;}
+        bool hasCastleRights() const {return kingSideCastle || queenSideCastle;}
 
         void computeMoves() override;
+        void computeCastling();
 
 };
 

@@ -1,4 +1,5 @@
 #include "Board.hpp"
+#include "Piece.hpp"
 #include "King.hpp"
 
 /* https://www.chessprogramming.org/Efficient_Generation_of_Sliding_Piece_Attacks
@@ -43,8 +44,79 @@ void King::computeMoves() {
                 validMoves.push_back(targetIndex);
             if (getColor() == Color::Black && !board->whiteAttackBoard[targetIndex])
                 validMoves.push_back(targetIndex);
-        }
-        
+        }   
+    }
+
+    if(!hasMoved) computeCastling();
+    else {
+        kingSideCastle = false;
+        queenSideCastle = false;
     }
 }
 
+void King::computeCastling() {
+    int kingSquare = (getColor() == Color::White) ? 4 : 60;
+    if (hasMoved) {
+        return;
+    } /* If the king moved, then it is invalid*/
+
+    /* Generate and Validate a King Side Castle */
+    if (kingSideCastle) {
+        bool canCastle = true;
+        Piece * rook = (getColor() == Color::White) ? board->board[7] : board->board[63];
+        if (rook == nullptr) canCastle = false;
+        if (rook && rook->getHasMoved()) {
+            kingSideCastle = false;
+            canCastle = false;
+        }
+
+        /* Check if they are free */
+        if (board->board[kingSquare+1] || board->board[kingSquare+2]) canCastle = false;
+
+        /* Is the King in Check */
+        if (inCheck) canCastle = false;
+
+        /* If the in between squares and final square are not attacked by enemy pieces */
+        for (int i = 1; i <= 3; ++i) {
+            int offset = kingSquare + i;
+            if (color == Color::White) {
+                if(board->blackAttackBoard[offset]) canCastle = false;
+            } else {
+                if(board->whiteAttackBoard[offset]) canCastle = false;
+            }
+        }
+
+        if (canCastle)
+            validMoves.push_back(kingSquare + 2);
+
+    }
+
+    if (queenSideCastle) {
+        Piece * rook = (getColor() == Color::White) ? board->board[0] : board->board[56];
+        bool canCastle = true;
+        if (rook == nullptr) canCastle = false;
+        if (rook && rook->getHasMoved()) {
+            queenSideCastle = false;
+            canCastle = false;
+        }
+
+        /* Check if they are free */
+        if (board->board[kingSquare-1] || board->board[kingSquare-2] || board->board[kingSquare-3]) canCastle = false;
+
+        /* Is the King in Check */
+        if (inCheck) canCastle = false;
+
+        /* If the in between squares and final square are not attacked by enemy pieces */
+        for (int i = 1; i <= 3; ++i) {
+            int offset = kingSquare - i;
+            if (color == Color::White) {
+                if(board->blackAttackBoard[offset]) canCastle = false;
+            } else {
+                if(board->whiteAttackBoard[offset]) canCastle = false;
+            }
+        }
+        if (canCastle)
+            validMoves.push_back(kingSquare - 2);
+    }
+
+}

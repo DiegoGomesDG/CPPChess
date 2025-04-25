@@ -12,6 +12,13 @@ enum class GameState {
     GameOver
 };
 
+enum class GameResult {
+    Ongoing,
+    WhiteWins,
+    BlackWins,
+    Draw
+};
+
 class ChessGame {
     private:
         GameState state;
@@ -28,6 +35,7 @@ class ChessGame {
         void setTurn(Color color) {turn = color;}
         Color getTurn() const {return turn;}
 
+        void handleStateTransition();
         void handleEvent(SDL_Event & event);
         bool isGameOver() const {return state == GameState::GameOver;}
         Graphics * getGraphic() {return &graphics;}
