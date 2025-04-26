@@ -165,13 +165,19 @@ void ChessGame::handleEvent(SDL_Event & event) {
             Mix_PlayChannel(-1, illegalMoveSound, 0);
         }
 
+        /* TESTING CHECKMATE */
+        if (!board.existLegalMoves(turn)) {
+            if (board.isKingInCheck(turn)) {
+                std::string text = "CHECKMATE";
+                graphics.printStatusText(board, text);
+            }
+        }
+
+
         // Reset state
         state = GameState::Idle;
         focusIndex = -1;
         targetIndex = -1;
-
-        std::string text = "White Wins";
-        graphics.printStatusText(board, text);
     }
 
 }

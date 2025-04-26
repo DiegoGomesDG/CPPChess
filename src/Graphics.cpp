@@ -57,7 +57,7 @@ Mix_Chunk * illegalMoveSound = nullptr;
 
 /* Fonts */
 const int boardMarkingsFontSize = 24;
-const int statusFontSize = 36;
+const int statusFontSize = 50;
 
 TTF_Font * boardFont;
 TTF_Font * statusFont;

@@ -362,6 +362,11 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         if (castlingMove) normalMove = false;
     }
 
+    bool pawnPromotion = false;
+    if (movingPiece->getType() == PieceType::Pawn) {
+        if (movingPiece->getColor() == Color::White && indexToRow(toIndex) == 7) pawnPromotion = true;
+        if (movingPiece->getColor() == Color::Black && indexToRow(toIndex) == 0) pawnPromotion = true;
+    }
 
     /* Prevent KING CAPTURE */
     Piece * targetPiece = board[toIndex];
@@ -383,6 +388,12 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         movingPiece->setPosition(toIndex);
         movingPiece->setHasMoved(true);
     }
+
+    if(pawnPromotion) {
+        Color color = movingPiece->getColor();
+        delete board[toIndex];
+        board[toIndex] = createPiece(PieceType::Queen, color, toIndex);
+    }
     
     if(castlingMove) {
         Piece * rook = nullptr;
@@ -398,6 +409,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
             movingPiece->setPosition(toIndex); rook->setPosition(toIndex - 1);
         }
 
+        /* Queen Side Castling */
         if (toIndex - fromIndex == -2) {
             board[fromIndex] = nullptr;
             board[fromIndex - 2] = movingPiece;
@@ -409,6 +421,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
             movingPiece->setPosition(toIndex); rook->setPosition(toIndex + 1);
         }
     }
+
     
 
     // 8. Update king pointers if needed
@@ -445,11 +458,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
     validMove = false;
 
     /* Reset check status after a move... */
-     // 9. Update game state
-    computeAllMoves();
-    computeAttackBoards();
-    whiteKing->computeMoves();
-    blackKing->computeMoves();
+     
 
     /* Reset validMove flag */
     validMove = false;
@@ -464,7 +473,12 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         whiteKing->setCheck(whiteInCheck);
         blackKing->setCheck(blackInCheck);
     }
-    
+
+    // 9. Update game state
+    computeAllMoves();
+    computeAttackBoards();
+    whiteKing->computeMoves();
+    blackKing->computeMoves();
 
     return true;
 
@@ -487,4 +501,25 @@ bool Board::isKingInCheck(Color color) {
         else king->setCheck(false);
     }
     return isAttacked;
+}
+
+bool Board::existLegalMoves(Color color) {
+    King * king = (color == Color::White) ? whiteKing : blackKing;
+    /* Check for valid king moves*/
+    validateMovesForPiece(king->getPosition());
+    if (!king->validMoves.empty()) {
+        return true;
+    }
+
+    /* If there are no legal moves, then loop through friendly pieces and check */
+    for (int i = 0; i < 64; ++i) {
+        if (board[i] && board[i]->getColor() == color) {
+            validateMovesForPiece(i);
+            if (!board[i]->validMoves.empty()) {
+                return true;;
+            }
+        }
+    }
+
+    return false;
 }

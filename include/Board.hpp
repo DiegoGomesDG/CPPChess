@@ -49,6 +49,7 @@ class Board {
         bool validateMove(int fromIndex, int toIndex);
         bool movePiece(int fromIndex, int toIndex);
         bool isKingInCheck(Color color);
+        bool existLegalMoves(Color color);
         
 };
 
