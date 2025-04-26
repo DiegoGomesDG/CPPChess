@@ -21,6 +21,7 @@ Piece * Knight::clone(Board* newBoard) const {
     return copy;
 }
 
+/* Compute all possible pseudomoves based on the Knight's offsets */
 void Knight::computeMoves() {
     validMoves.clear();
     

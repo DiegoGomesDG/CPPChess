@@ -67,8 +67,7 @@ class Graphics {
         void renderHoverSquare(int mouseX, int mouseY);
         void renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY);
         void animatePieceMoving(const Board & board, int fromIndex, int toIndex);
-        void printStatusText(const Board & board, std::string & text);
-        
+        void printText(const Board & board, std::string & text);
 };
 
 #endif

@@ -1,17 +1,15 @@
 #include "Texture.hpp"
 #include "Graphics.hpp"
 
+/* Constructor of the Texture class.*/
+Texture::Texture() : mTexture(nullptr), mWidth(0), mHeight(0) {}
 
-Texture::Texture() {
-    mTexture = nullptr;
-    mWidth = 0;
-    mHeight = 0;
-}
-
+/* Destructor of the Texture class. Simply wipes out all the contents of the object */
 Texture::~Texture() {
 	free();
 }
 
+/* Frees the textures */
 void Texture::free() {
 	//Free texture if it exists
 	if(mTexture != nullptr) {
@@ -22,6 +20,7 @@ void Texture::free() {
 	}
 }
 
+/* Loads a PNG image into a surface and converts it into a Texture, allowing GPU rendering */
 bool Texture::loadTexture(std::string path, SDL_Renderer * renderer) {
 	
 	//The final texture
@@ -47,10 +46,10 @@ bool Texture::loadTexture(std::string path, SDL_Renderer * renderer) {
 	}
 
 	this->mTexture = newTexture;
-	
 	return mTexture != nullptr;
 }
 
+/* Creates a Texture according to a given font, text and color */
 bool Texture::loadFromRenderedText(SDL_Renderer * renderer, TTF_Font * font, std::string textureText, SDL_Color textColor) {
 	//Get rid of preexisting texture
 	free();
@@ -78,20 +77,24 @@ bool Texture::loadFromRenderedText(SDL_Renderer * renderer, TTF_Font * font, std
 	return mTexture != nullptr;
 }
 
+/* Renders the texture in the given location. More specifically, in this case it renders to a given position, with size SQUARE_SIZE*/
 void Texture::renderTexture(SDL_Renderer * renderer, int x, int y) {
 	SDL_Rect renderQuad = {x, y, SQUARE_SIZE, SQUARE_SIZE}; // Change 90 to a variable
 	SDL_RenderCopy(renderer, this->mTexture, nullptr, &renderQuad);
 }
 
+/* Renders a text in a given location, considering the appropriate scaling of the screen */
 void Texture::renderText(SDL_Renderer * renderer, int x, int y, float scale) {
 	SDL_Rect renderQuad = {x, y, static_cast<int>(mWidth/scale), static_cast<int>(mHeight/scale)}; // 2 for macOS displays
 	SDL_RenderCopy(renderer, this->mTexture, nullptr, &renderQuad);
 }
 
+/* Returns the width of the texture */
 int Texture::getWidth() const {
 	return mWidth;
 }
 
+/* Returns the height of the texture*/
 int Texture::getHeight() const {
 	return mHeight;
 }

@@ -1,6 +1,6 @@
 #include "Graphics.hpp"
 
-/* Defined Headers */
+/* User-Defined Headers */
 #include "Board.hpp"
 #include "King.hpp"
 #include "SDL_mixer.h"
@@ -8,7 +8,7 @@
 #include "Piece.hpp"
 #include "Pawn.hpp"
 
-/* ##### Libraries ##### */
+/* ##### Standard Libraries ##### */
 #include <iostream>
 #include <cassert>
 
@@ -53,22 +53,22 @@ Mix_Chunk * moveSound = nullptr;
 Mix_Chunk * moveCheckSound = nullptr;
 Mix_Chunk * promoteSound = nullptr;
 Mix_Chunk * illegalMoveSound = nullptr;
-/* From: chess.com - https://www.chess.com/forum/view/general/chessboard-sound-files?page=2 */
 
 /* Fonts */
 const int boardMarkingsFontSize = 24;
-const int statusFontSize = 50;
+const int statusFontSize = 56;
 
 TTF_Font * boardFont;
 TTF_Font * statusFont;
 
 /* ##### Static Variables ##### */
-bool Graphics::instantiated = false;
+//bool Graphics::instantiated = false;
 
+/* Graphics Constructor. It initializes all the SDL Subsystems, taking care of the MacBook Pro 14" High DPI Display and also precomputes the squares of the board */
 Graphics::Graphics() {
     
-    assert(!instantiated && "More than one instance of the Class Graphics is not allowed!");
-    instantiated = true;
+    //assert(!instantiated && "More than one instance of the Class Graphics is not allowed!");
+    //instantiated = true;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "SDL could not initialize! SDL Error: " << SDL_GetError(); // Implement error handling
@@ -117,7 +117,7 @@ Graphics::Graphics() {
         // Throw Error
     }
 
-    /* Initialize SDL_ttf */
+    /* Initialize SDL_TTF */
     if (TTF_Init() == -1) {
         std::cerr << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
     }
@@ -136,6 +136,7 @@ Graphics::Graphics() {
     
 }
 
+/* Graphics class destructor. It deallocates all SDL subsystem textures, chunks and windows, then quits the subsystems */
 Graphics::~Graphics() {
 	//Destroy window	
 	if (window != NULL)
@@ -165,19 +166,23 @@ Graphics::~Graphics() {
     illegalMoveSound = nullptr;
 
 	/* Quit SDL subsystems */
-    instantiated = false;
+    //instantiated = false;
 	IMG_Quit();
 	SDL_Quit();
     Mix_Quit();
     TTF_Quit();
 }
 
-/* Source of the Files: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces */
+/* Source of the Files: 
+Pieces: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces 
+Sounds: https://www.chess.com/forum/view/general/chessboard-sound-files?page=2
+Font: Fira Sans, from Google Fonts
+*/
 bool Graphics::loadMedia() {
     bool success = true;
     
     /* ##### White Pieces ##### */
-    /* loadTexture returns true if it is successful, false otherwise. So if it is not true, it means it failed*/
+    /* loadTexture returns true if it is successful, false otherwise. So if it is not true, it means it failed */
 
     if(!whitePieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/white/WhitePawn.png", renderer)) {
         std::cerr << "Failed to load texture! ";
@@ -334,15 +339,18 @@ bool Graphics::loadMedia() {
     return success;
 }
 
+/* Clears all elements of the Window */
 void Graphics::clearWindow() {
     SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
     SDL_RenderClear(renderer);
 }
 
+/* Updates the Window */
 void Graphics::updateWindow() {
     SDL_RenderPresent(renderer);
 }
 
+/* Renders a board square with the correct color, according to the row and column */
 void Graphics::renderBoardSquare(int col, int row) {
     if (col < 0 || row < 0 || col >= COL || row >= ROW) return;   
 
@@ -358,6 +366,7 @@ void Graphics::renderBoardSquare(int col, int row) {
     SDL_RenderFillRect(renderer, &fillRect);
 }
 
+/* Renders the letters and numbers on the side of the board, which is used for notation */
 void Graphics::renderMarkings() {
     /* File Markings */
     for (int i = 0; i < COL; ++i) {
@@ -369,6 +378,7 @@ void Graphics::renderMarkings() {
     }
 }
 
+/* Renders the full board together with the markings */
 void Graphics::renderBoard() {
     SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
     SDL_RenderClear(renderer);
@@ -382,6 +392,7 @@ void Graphics::renderBoard() {
     renderMarkings();
 }
 
+/* Renders a piece placed in the board, in the position provided by index */
 void Graphics::renderPiece(const Board & board, int index) {
     
     if(index < 0 && index > (COL*ROW - 1))
@@ -412,18 +423,21 @@ void Graphics::renderPiece(const Board & board, int index) {
     }
 }
 
+/* Renders the marking which represents the King in check */
 void Graphics::renderKingInCheck(int index) {
     const SDL_Rect dstRect = squares[index];
     kingInCheck.renderTexture(renderer, dstRect.x, dstRect.y);
     
 }
 
+/* Render all the pieces of the board */
 void Graphics::renderPieces(const Board & board) {  
     for (int i = 0; i < COL * ROW; i++) {
 		renderPiece(board, i);
 	}
 }
 
+/* Highlights a square according to the index */
 void Graphics::highlightSquare(int index) {
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, HIGHLIGHT.r, HIGHLIGHT.g, HIGHLIGHT.b, HIGHLIGHT.a);
@@ -431,16 +445,19 @@ void Graphics::highlightSquare(int index) {
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 }
 
+/* Places a dot in the provided index */
 void Graphics::highlightMove(int index) {
     const SDL_Rect dstRect = squares[index];
     moveDot.renderTexture(renderer, dstRect.x, dstRect.y);
 }
 
+/* Places a marking of capture on the specified index */
 void Graphics::highlightCapture(int index) {
     const SDL_Rect dstRect = squares[index];
     capture.renderTexture(renderer, dstRect.x, dstRect.y);
 }
 
+/* Highlights the possible moves of a piece in the board, according to the given index. The possible moves are generated by the respective pieces. Check the class Board methods to find more information about the Move Generation mechanism */
 void Graphics::highlightPossibleMoves(const Board & board, int index) {
     if (index > 63 || index < 0) return;
     if (board.board[index] == nullptr) return;
@@ -456,6 +473,7 @@ void Graphics::highlightPossibleMoves(const Board & board, int index) {
     
 }
 
+/* Selects a piece in board according to the index, which means highlighting it and showing all possible moves. It calls the methods defined in Graphics, in a sequential form, to allow a layering. SDL does not provide a layering system, which requires to manually create layers by rendering in order */
 void Graphics::selectPiece(const Board & board, int index) {
     clearWindow();
 	renderBoard();
@@ -465,6 +483,7 @@ void Graphics::selectPiece(const Board & board, int index) {
 	updateWindow();
 }
 
+/* Renders the full board with all the pieces according to the placement in a Board class */
 void Graphics::renderBoardWithPieces(const Board & board) {
     clearWindow();
     renderBoard();
@@ -472,6 +491,7 @@ void Graphics::renderBoardWithPieces(const Board & board) {
 	updateWindow();
 }
 
+/* Renders a white marking on the square which is the piece is currently hovering */
 void Graphics::renderHoverSquare(int mouseX, int mouseY) {
     int hoverCol, hoverRow;
     
@@ -487,7 +507,9 @@ void Graphics::renderHoverSquare(int mouseX, int mouseY) {
         hoverSquare.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
 }
 
-/* https://gigi.nullneuron.net/gigilabs/sdl2-drag-and-drop/?fbclid=IwY2xjawJcp9dleHRuA2FlbQIxMAABHVwbudUFVEK3WEu3RsJArnH2_GUbucPv5NFXbvub048pgzXka-PFcwqrIg_aem_hUfSUIs5p6Sm0uZ4gBEfHg */
+/* Renders the piece of the provided index, in the position of the mouse. It is only used when the Piece is being dragged, i.e., left mouse button pressed + movement of the mouse/keypad. It performs the layering and then renders the Piece on the given mouse position
+
+Source: https://gigi.nullneuron.net/gigilabs/sdl2-drag-and-drop/?fbclid=IwY2xjawJcp9dleHRuA2FlbQIxMAABHVwbudUFVEK3WEu3RsJArnH2_GUbucPv5NFXbvub048pgzXka-PFcwqrIg_aem_hUfSUIs5p6Sm0uZ4gBEfHg */
 void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY) {
 
     Color color;
@@ -512,6 +534,7 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
     updateWindow();
 }
 
+/* Renders a piece moving from the origin index to the destination index. It is called only if the user executed a move by pressing in a valid move square. I used the help of DeepSeek, which gave me the idea of using linear interpolation. It renders according to the given frames per seconds. As the screen of my computer is 120Hz, I set it up to render at 120fps */
 void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toIndex) {
     int fromCol = indexToColumn(fromIndex);
     int fromRow = indexToRow(fromIndex);
@@ -554,7 +577,8 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
     
 }
 
-void Graphics::printStatusText(const Board & board, std::string & text) {
+/* Prints a given text on the center of the screen. The Board parameter is necessary for the renderPieces method */
+void Graphics::printText(const Board & board, std::string & text) {
     /* First, render the board normally */
     clearWindow();
     renderBoard();

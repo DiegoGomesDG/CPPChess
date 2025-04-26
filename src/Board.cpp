@@ -46,6 +46,7 @@ int indexToColumn(int index) {
     return index % COL;
 }
 
+/* Constructor */
 Board::Board(ChessGame * game) : game(game), enPassantIndex(-1), validMove(false) {
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
@@ -57,6 +58,7 @@ Board::Board(ChessGame * game) : game(game), enPassantIndex(-1), validMove(false
     blackKing = nullptr;
 }
 
+/* Copy Constructor, which will copy every piece of the Board with new addresses, so move simulations can be performed */
 Board::Board(const Board & original) {
      // Deep copy pieces
      for (int i = 0; i < 64; ++i) {
@@ -93,6 +95,7 @@ void Board::clearBoard() {
     blackKing = nullptr;
 }
 
+/* Dynamically allocates a piece according to the type, color and position */
 Piece* Board::createPiece(PieceType type, Color color, int position) {
     switch(type) {
         case PieceType::King: return new King(color, position, this, false);
@@ -105,17 +108,18 @@ Piece* Board::createPiece(PieceType type, Color color, int position) {
     }
 }
 
-/* https://www.geeksforgeeks.org/how-to-split-string-by-delimiter-in-cpp/*/
-/* https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation */
+
+/* Initializes a Chess Position by providing a VALID FEN String, which has the information of the pieces placement, turn, castling rights, en-passant target square, and other informations 
+More information: https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation */
 bool Board::loadFromFEN(const std::string & fen) {
     
     clearBoard();
-    
+    /* https://www.geeksforgeeks.org/how-to-split-string-by-delimiter-in-cpp/*/
     std::istringstream fenStream(fen);
-    std::string piecePlacement, activeColor, castlingRights;
+    std::string piecePlacement, activeColor, castlingRights, enPassant;
 
     /* Split FEN into main parts */
-    if (!(fenStream >> piecePlacement >> activeColor >> castlingRights)) {
+    if (!(fenStream >> piecePlacement >> activeColor >> castlingRights >> enPassant)) {
         return false; /* Invalid FEN */
     }
 
@@ -123,18 +127,19 @@ bool Board::loadFromFEN(const std::string & fen) {
     int col = 0; /* Starts from the 0th column/file */
     int index;
 
-    /* Store the address of the White and Black King to setup the castling rights LATER */
+    /* Initialize pointers to the white and black kings */
     whiteKing = nullptr;
     blackKing = nullptr;
 
+    /* Create pieces according to the placement, from top to bottom, right to left, starting from the Top-Left corner */
     for (char c : piecePlacement) {
         
-        if(c == '/') {
+        if(c == '/') { /* Change row */
             col = 0;
             row--;
         }
         
-        else if (isdigit(c)) 
+        else if (isdigit(c)) /* Skip columns */
         {
             if((c - '0') > 0 && (c - '0') < 9) {
                 int emptySquares = c - '0';
@@ -143,7 +148,7 @@ bool Board::loadFromFEN(const std::string & fen) {
             }
         }
 
-        else 
+        else /* Create a piece */
         {
             Color color = (isupper(c)) ? Color::White : Color::Black;
             PieceType type;
@@ -173,12 +178,12 @@ bool Board::loadFromFEN(const std::string & fen) {
         }
     }
 
-    /* Store turn information, change for a global variable later */
+    /* Store turn information into game */
     Color turn = (activeColor == "w") ? Color::White :
     (activeColor == "b") ? Color::Black : Color::White;
     game->setTurn(turn);
     
-    /* Castling Rights */
+    /* Castling Rights of white and black kings */
     if (whiteKing && blackKing) {
         if (castlingRights.find('K') != std::string::npos) {
             static_cast<King *>(whiteKing)->setKingSideCastleRight(true);
@@ -198,17 +203,21 @@ bool Board::loadFromFEN(const std::string & fen) {
         }
     } else return false;
 
-    /* Precompute valid moves */
+    /* enPassant target square */
+    /* To be implemented, first needs a notation parser */
+
+    /* Precompute valid pseudomoves and attackboards */
     computeAllMoves();
     computeAttackBoards();    
 
-    /* Recompute attack board for Kings */
+    /* Precompute moves for Kings */
     whiteKing->computeMoves();
     blackKing->computeMoves();
 
     return true;
 }
 
+/* Compares the origin square to the destination square and returns if it is Empty, Invalid, Friendly or Enemy */
 SquareStatus Board::getSquareStatus(int fromIndex, int toIndex) const {
     
     if (board[fromIndex] == nullptr) return SquareStatus::Invalid;
@@ -221,6 +230,7 @@ SquareStatus Board::getSquareStatus(int fromIndex, int toIndex) const {
     return SquareStatus::Invalid;
 }
 
+/* Computes the squares that are being attacked by the set of pieces of the same color, based on the pseudomoves */
 void Board::computeAttackBoards() {
     
     for (int i = 0; i < 64; ++i) {
@@ -243,7 +253,7 @@ void Board::computeAttackBoards() {
     
 }
 
-/* This method generates all moves, valid or invalid (pseudolegal moves) */
+/* This method generates all pseudolegal moves, i.e., for every piece in the Board */
 void Board::computeAllMoves() {
     // Clear all existing moves first
     //system("clear");
@@ -266,7 +276,7 @@ void Board::computeAllMoves() {
     //std::cerr << "Finished computeAllValidMoves()\n";
 }
 
-/* This method is responsible for VALIDATING the move */
+/* Validates the pseudomoves of a Piece in a position */
 void Board::validateMovesForPiece(int position) {
     if (position < 0 || position > 63) return;
     Piece * piece = board[position];
@@ -278,22 +288,23 @@ void Board::validateMovesForPiece(int position) {
     pseudolegalMoves = piece->validMoves;
     std::vector<int> legalMoves;
     
-    /* Validate each move */
+    /* Validate each move by calling validateMove method */
     for (int target : pseudolegalMoves) {
-        /* Create a temporary board copy */
         if(validateMove(position, target)) {
             legalMoves.push_back(target);
         }
     }
-
+    /* Copy all the legalMoves to the piece validMoves vector */
     piece->validMoves = legalMoves;
 }
 
+/* Method responsible for VALIDATING a move, which means it considers if the move is performed, would it lead the King (of same color) be in check. If yes, then the move is illegal, if not, the move is legal. This allows for the existance of pinned pieces, double checks, forks, and checkmate/stalemate detection (when there are no legal moves remaining) */
 bool Board::validateMove(int fromIndex, int toIndex) {
     /* Checks if the indexes are within the bounds */
     validMove = false;
     if (fromIndex < 0 || fromIndex >= 64 || toIndex < 0 || toIndex >= 64)
         return false;
+    /* Check if the moving piece exists */
     Piece* movingPiece = board[fromIndex];
     if (!movingPiece) return false;
 
@@ -302,17 +313,17 @@ bool Board::validateMove(int fromIndex, int toIndex) {
     if (targetPiece && targetPiece->getType() == PieceType::King)
         return false;
 
-    // 3. Create temporary board for validation
+    /* Create a temporary board for validation, by copying the entire board. Yes, it is a bit expensive, but it is the easier way of validating a move */
     Board tempBoard(*this);
     
-    // 4. Simulate move on temporary board
+    /* Simulate the move on temporary board */
     if (tempBoard.board[toIndex] && tempBoard.board[toIndex]->getType() != PieceType::King) delete tempBoard.board[toIndex];
     tempBoard.board[toIndex] = tempBoard.board[fromIndex];
     tempBoard.board[fromIndex] = nullptr;
     tempBoard.board[toIndex]->setPosition(toIndex);
     
     
-    // 5. Update king pointers in temp board if needed
+    // Update king pointers in temporary board, if needed
     if (movingPiece->getType() == PieceType::King) {
         if (movingPiece->getColor() == Color::White) {
             tempBoard.whiteKing = static_cast<King*>(tempBoard.board[toIndex]);
@@ -322,24 +333,21 @@ bool Board::validateMove(int fromIndex, int toIndex) {
     }
     
 
-    // 6. Validate move doesn't leave king in check
+    // 6. Validate move if it doesn't leave king in check
     tempBoard.computeAllMoves();
     tempBoard.computeAttackBoards();
     
     if (tempBoard.isKingInCheck(movingPiece->getColor())) {
         validMove = false;
-        return false; // Move would leave king in check
+        return false; /* Move would lead the King being checked, which means it is an ILLEGAL move */
     } else {
-        validMove = true;
+        validMove = true; /* Move is valid */
         return true;
     }
 }
 
 bool Board::movePiece(int fromIndex, int toIndex) {
     
-    if(!validMove)
-        return false;
-
     /* Checks if the indexes are within the bounds */
     if (fromIndex < 0 || fromIndex >= 64 || toIndex < 0 || toIndex >= 64)
         return false;
@@ -446,19 +454,12 @@ bool Board::movePiece(int fromIndex, int toIndex) {
     } else {
         enPassantIndex = -1;
     }
-    std::cerr << "enPassantIndex: " << enPassantIndex << std::endl;
-
+   
     // 9. Update game state
     computeAllMoves();
     computeAttackBoards();
     whiteKing->computeMoves();
     blackKing->computeMoves();
-
-    /* Reset validMove flag */
-    validMove = false;
-
-    /* Reset check status after a move... */
-     
 
     /* Reset validMove flag */
     validMove = false;
@@ -474,7 +475,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         blackKing->setCheck(blackInCheck);
     }
 
-    // 9. Update game state
+    // 9. Update game state ?????????????
     computeAllMoves();
     computeAttackBoards();
     whiteKing->computeMoves();
@@ -484,6 +485,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
 
 }
 
+/* Checks if the position of the King of a color is being attacked (marked as 1) in the attacking board of the opposite color */
 bool Board::isKingInCheck(Color color) {
     King * king = (color == Color::White) ? static_cast<King *>(whiteKing) : static_cast<King *>(blackKing);
     if (king == nullptr) return false;
@@ -503,6 +505,7 @@ bool Board::isKingInCheck(Color color) {
     return isAttacked;
 }
 
+/* Check if there are any legal moves to the pieces of a Color. It is used to detect checkmate or stalemate */
 bool Board::existLegalMoves(Color color) {
     King * king = (color == Color::White) ? whiteKing : blackKing;
     /* Check for valid king moves*/
@@ -511,7 +514,7 @@ bool Board::existLegalMoves(Color color) {
         return true;
     }
 
-    /* If there are no legal moves, then loop through friendly pieces and check */
+    /* If there are no legal moves, then loop through friendly pieces and check if they have any valid move */
     for (int i = 0; i < 64; ++i) {
         if (board[i] && board[i]->getColor() == color) {
             validateMovesForPiece(i);

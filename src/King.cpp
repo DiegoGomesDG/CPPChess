@@ -10,12 +10,14 @@
     -9    -8    -7
 */
 
+/* Constructor */
 King::King(Color color, int position, Board * board, bool hasMoved) : Piece(color, PieceType::King, position, board, hasMoved) {
     kingSideCastle = false;
     queenSideCastle = false;
     inCheck = false;
 }
 
+/* Clones the piece to a new address */
 Piece * King::clone(Board* newBoard) const {
     King * copy = new King(getColor(), getPosition(), newBoard, getHasMoved());
     copy->kingSideCastle = kingSideCastle;
@@ -54,6 +56,7 @@ void King::computeMoves() {
     }
 }
 
+/* Computes the possibility of castle, according to the official chess rules. If the castle is possible, it will add it to the move list, otherwise not. If the piece already moved, it immediatelly returns false as the King has no rights to move */
 void King::computeCastling() {
     int kingSquare = (getColor() == Color::White) ? 4 : 60;
     if (hasMoved) {

@@ -15,17 +15,19 @@
 /* ##### Static Variables ##### */
 std::array<const int, 4> Bishop::offsets = {-9, -7, +7, +9};
 
+/* Clone method to allow the piece to be copied into a new memory location. Useful for creating a copy of Board */
 Piece * Bishop::clone(Board* newBoard) const {
     Piece * copy = new Bishop(getColor(), getPosition(), newBoard);
     copy->validMoves = validMoves;
     return copy;
 }
 
+/* Compute all possible pseudomoves according to the piece offsets */
 void Bishop::computeMoves() {
     validMoves.clear();
     int fromIndex = getPosition();
 
-    /* Generate all pseudolegal moves (without considering checks)*/
+    /* Generate all pseudolegal moves (without considering checks, pins, etc) */
     for (int offset : offsets) {
         int targetIndex = fromIndex;
         while(true) {
@@ -39,8 +41,8 @@ void Bishop::computeMoves() {
             int colDiff = std::abs(nextCol - currentCol);
             if (colDiff != 1 && colDiff != 0) break;
 
+            
             SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
-
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {   

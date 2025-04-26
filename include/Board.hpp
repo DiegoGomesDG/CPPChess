@@ -14,7 +14,7 @@ class ChessGame;
 /* ##### Enums ##### */
 enum class SquareStatus {Invalid, Empty, Friendly, Enemy};
 
-/* Helper Function - Row, Column to Array Index */
+/* Helper Functions - Row, Column to Array Index */
 int squareToIndex(int row, int col);
 int indexToRow(int index);
 int indexToColumn(int index);

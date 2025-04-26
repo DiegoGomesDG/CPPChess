@@ -17,6 +17,7 @@ void ChessGame::handleStateTransition() {
     
 }
 
+/* Compute all possible pseudomoves according to the piece offsets */
 void ChessGame::handleEvent(SDL_Event & event) {
     SDL_Point mousePos;
     SDL_GetMouseState(&mousePos.x, &mousePos.y);
@@ -169,7 +170,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
         if (!board.existLegalMoves(turn)) {
             if (board.isKingInCheck(turn)) {
                 std::string text = "CHECKMATE";
-                graphics.printStatusText(board, text);
+                graphics.printText(board, text);
             }
         }
 

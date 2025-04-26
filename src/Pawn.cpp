@@ -2,12 +2,14 @@
 #include "Pawn.hpp"
 #include "King.hpp"
 
+/* Clones the piece to a new index */
 Piece * Pawn::clone(Board* newBoard) const {
     Piece * copy = new Pawn(getColor(), getPosition(), newBoard, getHasMoved());
     copy->validMoves = validMoves;
     return copy;
 }
 
+/* Computes all pseudomoves for the Pawn, with the offsets being generated according to the color. Pawn is the only move that can move or capture in one direction, meaning it cannot go back or capture backwards. Also, it takes into account the possibility of a valid en-passant square */
 void Pawn::computeMoves() {
     validMoves.clear();
     //forwardMoves.clear();
