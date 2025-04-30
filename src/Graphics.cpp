@@ -133,6 +133,9 @@ Graphics::Graphics() {
             squares[index] = {BORDER_SIZE - 1 + col * SQUARE_SIZE, BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
         }
     }
+
+    /* Board Flipped */
+    isBoardFlipped = false;
     
 }
 
@@ -354,7 +357,7 @@ void Graphics::updateWindow() {
 void Graphics::renderBoardSquare(int col, int row) {
     if (col < 0 || row < 0 || col >= COL || row >= ROW) return;   
 
-    int index = squareToIndex(row, col);
+    int index = Board::squareToIndex(row, col);
     const SDL_Rect& fillRect = squares[index];
 
     if ((row + col) % 2 != 0) {
@@ -368,14 +371,29 @@ void Graphics::renderBoardSquare(int col, int row) {
 
 /* Renders the letters and numbers on the side of the board, which is used for notation */
 void Graphics::renderMarkings() {
-    /* File Markings */
-    for (int i = 0; i < COL; ++i) {
-        boardLetters[i].renderText(renderer, BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (SQUARE_SIZE/2 - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+
+    if(!isBoardFlipped) {
+        /* File Markings */
+        for (int i = 0; i < COL; ++i) {
+            boardLetters[i].renderText(renderer, BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+        }
+        /* Row Markings */
+        for (int i = 0; i < ROW; ++i) {
+            boardNumbers[ROW - 1 - i].renderText(renderer, static_cast<int>(BORDER_SIZE/2) - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
+        }
+    } else { /* Flipped Markings*/
+
+        for (int i = 0; i < COL; ++i) {
+            boardLetters[COL - 1 - i].renderText(renderer, BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+        }
+        /* Row Markings */
+        for (int i = 0; i < ROW; ++i) {
+            boardNumbers[i].renderText(renderer, static_cast<int>(BORDER_SIZE/2) - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
+        }
+
+
     }
-    /* Row Markings */
-    for (int i = 0; i < ROW; ++i) {
-        boardNumbers[ROW - 1 - i].renderText(renderer, BORDER_SIZE/2 - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (SQUARE_SIZE/2 - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
-    }
+    
 }
 
 /* Renders the full board together with the markings */
@@ -507,6 +525,8 @@ void Graphics::renderHoverSquare(int mouseX, int mouseY) {
         hoverSquare.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
 }
 
+
+
 /* Renders the piece of the provided index, in the position of the mouse. It is only used when the Piece is being dragged, i.e., left mouse button pressed + movement of the mouse/keypad. It performs the layering and then renders the Piece on the given mouse position
 
 Source: https://gigi.nullneuron.net/gigilabs/sdl2-drag-and-drop/?fbclid=IwY2xjawJcp9dleHRuA2FlbQIxMAABHVwbudUFVEK3WEu3RsJArnH2_GUbucPv5NFXbvub048pgzXka-PFcwqrIg_aem_hUfSUIs5p6Sm0uZ4gBEfHg */
@@ -536,8 +556,8 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
 
 /* Renders a piece moving from the origin index to the destination index. It is called only if the user executed a move by pressing in a valid move square. I used the help of DeepSeek, which gave me the idea of using linear interpolation. It renders according to the given frames per seconds. As the screen of my computer is 120Hz, I set it up to render at 120fps */
 void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toIndex) {
-    int fromCol = indexToColumn(fromIndex);
-    int fromRow = indexToRow(fromIndex);
+    int fromCol = Board::indexToColumn(fromIndex);
+    int fromRow = Board::indexToRow(fromIndex);
 
     int startX = squares[fromIndex].x;
     int startY = squares[fromIndex].y;
@@ -595,4 +615,27 @@ void Graphics::printText(const Board & board, std::string & text) {
     renderText.renderText(renderer, x, y);
     SDL_Delay(1000);
     updateWindow();
+}
+
+/* Flips the board */
+void Graphics::flipBoard() {
+
+    isBoardFlipped = !isBoardFlipped;
+    for (int row = 0; row < ROW; ++row) {
+        for (int col = 0; col < COL; ++col) {
+            int index = row * COL + col;
+                
+            if (isBoardFlipped) {
+                int flippedRow = row;
+                int flippedCol = (COL - 1) - col;
+
+                squares[index] = {BORDER_SIZE - 1 + flippedCol * SQUARE_SIZE, BORDER_SIZE - 1 + flippedRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+            } else {
+                int sdlRow = (ROW - 1) - row;
+    
+                squares[index] = {BORDER_SIZE - 1 + col * SQUARE_SIZE, BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+            }
+        }
+    }
+    
 }

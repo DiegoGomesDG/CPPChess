@@ -4,6 +4,7 @@
 #include "SDL_events.h"
 #include "SDL_mixer.h"
 
+/* Game Loader */
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), wasClicked(false) {
     board.loadFromFEN(fen); 
     graphics.clearWindow();
@@ -14,7 +15,22 @@ ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(thi
 
 /* Works on basis of a High Level State Machine (Digital Design 1, 1st Semester) */
 void ChessGame::handleStateTransition() {
-    
+
+    switch(state) {
+
+        case GameState::Idle:
+        
+        case GameState::PieceSelected:
+
+        case GameState::Dragging:
+
+        case GameState::Processing:
+            
+
+
+        case GameState::GameOver:
+
+    }
 }
 
 /* Compute all possible pseudomoves according to the piece offsets */
@@ -27,6 +43,13 @@ void ChessGame::handleEvent(SDL_Event & event) {
     case SDL_QUIT:
         state = GameState::GameOver;
         return;
+
+    case SDL_KEYDOWN:
+        if (event.key.keysym.sym == SDLK_f) {
+            graphics.flipBoard();
+            graphics.renderBoardWithPieces(board);
+            break;
+        }
 
     case SDL_MOUSEMOTION:
         mousePos = {event.motion.x, event.motion.y};
@@ -48,7 +71,12 @@ void ChessGame::handleEvent(SDL_Event & event) {
             int row = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
 
             if (mousePos.x > BORDER_SIZE && mousePos.x < WIN_WIDTH - BORDER_SIZE && mousePos.y > BORDER_SIZE && mousePos.y < WIN_HEIGHT - BORDER_SIZE) {
-                int clickedIndex = squareToIndex((ROW - 1) - row, col);
+                int clickedIndex = -1;
+                if (!graphics.isBoardFlipped) {
+                    clickedIndex = Board::squareToIndex((ROW - 1) - row, col);
+                } else {
+                    clickedIndex = Board::squareToIndex(row, (COL - 1) - col);
+                }
 
                 if (state == GameState::Idle) {
                     Piece * piece = board.board[clickedIndex];
@@ -103,7 +131,12 @@ void ChessGame::handleEvent(SDL_Event & event) {
             int dropRow = (mousePos.y - BORDER_SIZE) / SQUARE_SIZE;
 
             if(mousePos.x < (WIN_WIDTH + BORDER_SIZE) && (mousePos.x > BORDER_SIZE) && mousePos.y < (WIN_HEIGHT + BORDER_SIZE) && (mousePos.y > BORDER_SIZE)) {
-                targetIndex = squareToIndex((ROW - 1) - dropRow, dropCol);
+                if (!graphics.isBoardFlipped) {
+                    targetIndex = Board::squareToIndex((ROW - 1) - dropRow, dropCol);
+                } else {
+                    targetIndex = Board::squareToIndex(dropRow, (COL - 1) - dropCol);
+                }
+                
             } else {
                 targetIndex = -1;
             }
@@ -129,7 +162,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
         Piece * focusedPiece = board.board[focusIndex];
         Piece * targetPiece = board.board[targetIndex];
         if (board.validateMove(focusIndex, targetIndex)) {
-            // Animate the move if it was a click (not drag)
+            /* Animate the move if it was a click (not drag) */
             if (wasClicked) {
                 graphics.animatePieceMoving(board, focusIndex, targetIndex);
                 wasClicked = false;
@@ -140,7 +173,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                 Mix_PlayChannel(-1, captureSound, 0);
 
 
-            // Execute the move on the logical board
+            /* Execute the move on the logical board */
             if (board.movePiece(focusIndex, targetIndex)) {
                 // Switch turns
                 turn = (turn == Color::White) ? Color::Black : Color::White;
@@ -174,7 +207,6 @@ void ChessGame::handleEvent(SDL_Event & event) {
             }
         }
 
-
         // Reset state
         state = GameState::Idle;
         focusIndex = -1;
@@ -183,3 +215,58 @@ void ChessGame::handleEvent(SDL_Event & event) {
 
 }
 
+void ChessGame::processMove() {
+    if (focusIndex != -1 && targetIndex != -1) return;
+    Piece * focusedPiece = board.board[focusIndex];
+    Piece * targetPiece = board.board[targetIndex];
+    if (board.validateMove(focusIndex, targetIndex)) {
+        /* Animate the move if it was a click (not drag) */
+        if (wasClicked) {
+            graphics.animatePieceMoving(board, focusIndex, targetIndex);
+            wasClicked = false;
+        }
+
+        /* Play the capture sound if it is an en-passant */
+        if(targetIndex == board.getEnPassantIndex())
+            Mix_PlayChannel(-1, captureSound, 0);
+
+
+        /* Execute the move on the logical board */
+        if (board.movePiece(focusIndex, targetIndex)) {
+            // Switch turns
+            turn = (turn == Color::White) ? Color::Black : Color::White;
+            if(board.isKingInCheck(turn)) {
+                Mix_PlayChannel(-1, moveCheckSound, 0);
+            } else {
+                if(targetPiece != nullptr) {
+                    Mix_PlayChannel(-1, captureSound, 0);
+                } else if (abs(targetIndex - focusIndex) == 2 && focusedPiece->getType() == PieceType::King) {
+                    Mix_PlayChannel(-1, castleSound, 0);
+                } else {
+                    Mix_PlayChannel(-1, moveSound, 0);
+                }
+            }
+            // Update the board display
+            graphics.renderBoardWithPieces(board);
+        } else {
+            // Handle invalid move (should not happen as we validated earlier)
+            Mix_PlayChannel(-1, illegalMoveSound, 0);
+        }
+    } else {
+        // Handle invalid move
+        Mix_PlayChannel(-1, illegalMoveSound, 0);
+    }
+
+    /* TESTING CHECKMATE */
+    if (!board.existLegalMoves(turn)) {
+        if (board.isKingInCheck(turn)) {
+            std::string text = "CHECKMATE";
+            graphics.printText(board, text);
+        }
+    }
+
+    // Reset state
+    state = GameState::Idle;
+    focusIndex = -1;
+    targetIndex = -1;
+}

@@ -37,6 +37,8 @@ class ChessGame {
 
         void handleStateTransition();
         void handleEvent(SDL_Event & event);
+        void processMove();
+
         bool isGameOver() const {return state == GameState::GameOver;}
         Graphics * getGraphic() {return &graphics;}
 };

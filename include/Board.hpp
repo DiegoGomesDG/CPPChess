@@ -14,11 +14,6 @@ class ChessGame;
 /* ##### Enums ##### */
 enum class SquareStatus {Invalid, Empty, Friendly, Enemy};
 
-/* Helper Functions - Row, Column to Array Index */
-int squareToIndex(int row, int col);
-int indexToRow(int index);
-int indexToColumn(int index);
-
 class Board {
     private:
         ChessGame * game;
@@ -26,31 +21,50 @@ class Board {
         King * blackKing;
         int enPassantIndex;
     public:
-        Board(ChessGame * game);
-        Board(const Board & original);
-        ~Board();
+        Board(ChessGame * game); /* Constructor */
+        Board(const Board & original); /* Copy Constructor */
+        ~Board(); /* Destructor */
     
         std::array<int, 64> whiteAttackBoard;
         std::array<int, 64> blackAttackBoard;
-        std::array<Piece *, 64> board; /* PUBLIC for testing and simplifying purposes*/
-        bool validMove;
+        std::array<Piece *, 64> board; /* PUBLIC for simplifying purposes*/
         int castlingOffset; /* just for the animation */
 
-        void clearBoard();
-        int getEnPassantIndex() const {return enPassantIndex;}
-        void setEnPassantIndex(int position) {enPassantIndex = position;}
+        /* Static Methods - Convertion of (row, col) to index and back */
+        static int squareToIndex(int row, int col);
+        static int indexToRow(int index);
+        static int indexToColumn(int index);
 
+        /* Static Methods - Conversion of an index to Algebraic Notation (e.g. e4, f2, etc) and the otherway `*/
+        static int algebraicToIndex(const std::string & notation);
+        static std::string indexToAlgebraic(int index);
+
+        /* Clear the board*/
+        void clearBoard();
+
+        /* Piece creation and board initialization */
         Piece * createPiece(PieceType type, Color color, int position);
-        bool loadFromFEN(const std::string & fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq");
+        bool loadFromFEN(const std::string & fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+
+        /* Helpers for move computation */
+        static bool isValidIndex(int index);
         SquareStatus getSquareStatus(int fromIndex, int toIndex) const;
+
+        /* Compute moves and attack boards*/
         void computeAllMoves();
         void computeAttackBoards();
+
+        /* Move and Move Validation */
         void validateMovesForPiece(int position);
         bool validateMove(int fromIndex, int toIndex);
         bool movePiece(int fromIndex, int toIndex);
-        bool isKingInCheck(Color color);
         bool existLegalMoves(Color color);
-        
+        bool isKingInCheck(Color color);
+
+        /* En Passant Setters/Getters */
+        int getEnPassantIndex() const {return enPassantIndex;}
+        void setEnPassantIndex(int position) {enPassantIndex = position;}
+
 };
 
 #endif

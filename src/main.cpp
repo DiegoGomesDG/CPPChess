@@ -6,7 +6,7 @@
 
 int main(int argc, char* argv[]) {
 	
-	std::string fen = (argc > 1) ? argv[1] : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq";
+	std::string fen = (argc > 1) ? argv[1] : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
     ChessGame game(fen);
 
     SDL_Event e;

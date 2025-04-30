@@ -33,21 +33,56 @@ Source:
 https://lichess.org/@/likeawizard/blog/review-of-different-board-representations-in-computer-chess/S9eQCAWa
 */
 
-/* Helper functions, maybe static attributes? */
-int squareToIndex(int row, int col) {
+/* ##### Static Methods - Helper functions ##### */
+/* Converts row and column of a square in the board to an index */
+int Board::squareToIndex(int row, int col) {
     return row * COL + col;
 }
 
-int indexToRow(int index) {
+/* Returns the row in which the index represents */
+int Board::indexToRow(int index) {
     return index / ROW;
 }
 
-int indexToColumn(int index) {
+/* Returns the column that the index represents */
+int Board::indexToColumn(int index) {
     return index % COL;
 }
 
+/* Converts Chess Algebraic notation to an Index */
+int Board::algebraicToIndex(const std::string & notation) {
+    /* A pure (without any marking of checks or captures) algebraic notation should have two characters, one containing the file and the rank */
+    if (notation.length() != 2) return -1; /* Throw an Error or Handle -1 */
+
+    int col, row;
+    char file = notation[0];
+    if (file >= 'a' && file <= 'h') {
+        col = file - 'a';
+    } else return -1; /* Throw an error */
+
+    char rank = notation[1];
+    if (file >= '1' && file <= '8') {
+        row = rank - '1';
+    } else return -1; /* Throw an error */
+
+    return Board::squareToIndex(row, col);
+}
+
+/* Converts an index of the board to a chess Algebraic Notation */
+std::string Board::indexToAlgebraic(int index) {
+    if(!isValidIndex(index)) {
+        std::string empty = "";
+        return empty; /* Throw an error */
+    }
+
+    char file = 'a' + indexToColumn(index);
+    char rank = '1' + indexToRow(index);
+
+    return std::string() + file + rank;
+}
+
 /* Constructor */
-Board::Board(ChessGame * game) : game(game), enPassantIndex(-1), validMove(false) {
+Board::Board(ChessGame * game) : game(game), enPassantIndex(-1) {
     /* Set every pointer of board to NULL, ocupation board to 0 */
     for (int i = 0; i < ROW * COL; ++i) {
         board[i] = nullptr;
@@ -88,8 +123,7 @@ void Board::clearBoard() {
         delete board[i];
         board[i] = nullptr;
         whiteAttackBoard[i] = 0;
-        blackAttackBoard[i] = 0;
-        
+        blackAttackBoard[i] = 0;    
     }
     whiteKing = nullptr;
     blackKing = nullptr;
@@ -107,7 +141,6 @@ Piece* Board::createPiece(PieceType type, Color color, int position) {
         default: return nullptr; // Implement error handling
     }
 }
-
 
 /* Initializes a Chess Position by providing a VALID FEN String, which has the information of the pieces placement, turn, castling rights, en-passant target square, and other informations 
 More information: https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation */
@@ -204,7 +237,11 @@ bool Board::loadFromFEN(const std::string & fen) {
     } else return false;
 
     /* enPassant target square */
-    /* To be implemented, first needs a notation parser */
+    if (enPassant == "-") {
+        enPassantIndex = -1;
+    } else {
+        enPassantIndex = Board::algebraicToIndex(enPassant);
+    }
 
     /* Precompute valid pseudomoves and attackboards */
     computeAllMoves();
@@ -217,12 +254,17 @@ bool Board::loadFromFEN(const std::string & fen) {
     return true;
 }
 
+/* Check if the given index is within the defined boundaries */
+bool Board::isValidIndex(int index) {
+    return index >= 0 && index < 64;
+}
+
 /* Compares the origin square to the destination square and returns if it is Empty, Invalid, Friendly or Enemy */
 SquareStatus Board::getSquareStatus(int fromIndex, int toIndex) const {
     
     if (board[fromIndex] == nullptr) return SquareStatus::Invalid;
-    if (toIndex < 0 || toIndex > 63) return SquareStatus::Invalid;
-    if (fromIndex < 0 || fromIndex > 63) return SquareStatus::Invalid;
+    if (!isValidIndex(toIndex)) return SquareStatus::Invalid;
+    if (!isValidIndex(fromIndex)) return SquareStatus::Invalid;
     if(board[toIndex] == nullptr) return SquareStatus::Empty; /* empty */
     if(board[fromIndex]->getColor() != board[toIndex]->getColor()) return SquareStatus::Enemy; /* different piece color */
     if(board[fromIndex]->getColor() == board[toIndex]->getColor()) return SquareStatus::Friendly;
@@ -255,31 +297,21 @@ void Board::computeAttackBoards() {
 
 /* This method generates all pseudolegal moves, i.e., for every piece in the Board */
 void Board::computeAllMoves() {
-    // Clear all existing moves first
-    //system("clear");
-    //std::cerr << "Found piece, computing moves... ";
+    
+    /* Compute moves for each piece */
     for (int i = 0; i < 64; i++) {
         if (board[i] != nullptr) {
             board[i]->validMoves.clear();
-        }
-    }
-    
-    // Compute moves for each piece
-    for (int i = 0; i < 64; i++) {
-        //std::cerr << "Checking square " << i << "... ";
-        if (board[i] != nullptr) {
-            //std::cerr << "Found piece, computing moves... ";
             board[i]->computeMoves();
-            //std::cerr << "Done.\n";
-        } //else std::cerr << "Empty square.\n";
+        } 
     }
-    //std::cerr << "Finished computeAllValidMoves()\n";
+   
 }
 
 /* Validates the pseudomoves of a Piece in a position */
-void Board::validateMovesForPiece(int position) {
-    if (position < 0 || position > 63) return;
-    Piece * piece = board[position];
+void Board::validateMovesForPiece(int index) {
+    if (!isValidIndex(index)) return;
+    Piece * piece = board[index];
     if (!piece) return;
 
     // Get all pseudolegal moves first
@@ -290,7 +322,7 @@ void Board::validateMovesForPiece(int position) {
     
     /* Validate each move by calling validateMove method */
     for (int target : pseudolegalMoves) {
-        if(validateMove(position, target)) {
+        if(validateMove(index, target)) {
             legalMoves.push_back(target);
         }
     }
@@ -301,8 +333,7 @@ void Board::validateMovesForPiece(int position) {
 /* Method responsible for VALIDATING a move, which means it considers if the move is performed, would it lead the King (of same color) be in check. If yes, then the move is illegal, if not, the move is legal. This allows for the existance of pinned pieces, double checks, forks, and checkmate/stalemate detection (when there are no legal moves remaining) */
 bool Board::validateMove(int fromIndex, int toIndex) {
     /* Checks if the indexes are within the bounds */
-    validMove = false;
-    if (fromIndex < 0 || fromIndex >= 64 || toIndex < 0 || toIndex >= 64)
+    if (!isValidIndex(fromIndex) || !isValidIndex(toIndex))
         return false;
     /* Check if the moving piece exists */
     Piece* movingPiece = board[fromIndex];
@@ -317,31 +348,11 @@ bool Board::validateMove(int fromIndex, int toIndex) {
     Board tempBoard(*this);
     
     /* Simulate the move on temporary board */
-    if (tempBoard.board[toIndex] && tempBoard.board[toIndex]->getType() != PieceType::King) delete tempBoard.board[toIndex];
-    tempBoard.board[toIndex] = tempBoard.board[fromIndex];
-    tempBoard.board[fromIndex] = nullptr;
-    tempBoard.board[toIndex]->setPosition(toIndex);
-    
-    
-    // Update king pointers in temporary board, if needed
-    if (movingPiece->getType() == PieceType::King) {
-        if (movingPiece->getColor() == Color::White) {
-            tempBoard.whiteKing = static_cast<King*>(tempBoard.board[toIndex]);
-        } else {
-            tempBoard.blackKing = static_cast<King*>(tempBoard.board[toIndex]);
-        }
-    }
-    
-
-    // 6. Validate move if it doesn't leave king in check
-    tempBoard.computeAllMoves();
-    tempBoard.computeAttackBoards();
+    tempBoard.movePiece(fromIndex, toIndex);
     
     if (tempBoard.isKingInCheck(movingPiece->getColor())) {
-        validMove = false;
         return false; /* Move would lead the King being checked, which means it is an ILLEGAL move */
     } else {
-        validMove = true; /* Move is valid */
         return true;
     }
 }
@@ -349,7 +360,7 @@ bool Board::validateMove(int fromIndex, int toIndex) {
 bool Board::movePiece(int fromIndex, int toIndex) {
     
     /* Checks if the indexes are within the bounds */
-    if (fromIndex < 0 || fromIndex >= 64 || toIndex < 0 || toIndex >= 64)
+    if (!isValidIndex(fromIndex) || !isValidIndex(toIndex))
         return false;
     Piece* movingPiece = board[fromIndex];
     if (!movingPiece) return false;
@@ -430,9 +441,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         }
     }
 
-    
-
-    // 8. Update king pointers if needed
+    /* Update king pointers if necessary */
     if (movingPiece->getType() == PieceType::King) {
         if (movingPiece->getColor() == Color::White) {
             whiteKing = static_cast<King*>(movingPiece);
@@ -441,7 +450,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         }
     }
 
-    // ##### Generate the enPassantIndex if a pawn moved twice #####
+    /* Generate the enPassantIndex if a pawn moved twice */
     if (movingPiece && movingPiece->getType() == PieceType::Pawn) {
         int distance = toIndex - fromIndex;
         if (distance == 16 || distance == -16) {
@@ -455,14 +464,11 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         enPassantIndex = -1;
     }
    
-    // 9. Update game state
+    /* Recompute all the moves, recompute the attacking boards and recompute once again for the Kings */
     computeAllMoves();
     computeAttackBoards();
     whiteKing->computeMoves();
     blackKing->computeMoves();
-
-    /* Reset validMove flag */
-    validMove = false;
 
     /* Reset check status after a move... */
     if (movingPiece->getType() == PieceType::King) {
@@ -474,12 +480,6 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         whiteKing->setCheck(whiteInCheck);
         blackKing->setCheck(blackInCheck);
     }
-
-    // 9. Update game state ?????????????
-    computeAllMoves();
-    computeAttackBoards();
-    whiteKing->computeMoves();
-    blackKing->computeMoves();
 
     return true;
 

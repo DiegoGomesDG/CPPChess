@@ -42,14 +42,23 @@ class Graphics {
         SDL_Renderer * renderer;
         static bool instantiated; /* https://gameprogrammingpatterns.com/singleton.html */
         std::array<SDL_Rect, 64> squares;
+        
     public:
         /* RAII Technique - Resource Acquisition Is Initialization */
         Graphics();
         ~Graphics();
-        bool loadMedia();
-        SDL_Window * getWindow() const {return window;};
-        SDL_Renderer * getRenderer() const {return renderer;};
+        
+        /* Getters for the window and renderer, to be used if necessary */
+        //SDL_Window * getWindow() const {return window;};
+        //SDL_Renderer * getRenderer() const {return renderer;};
 
+        /* Media Loader */
+        bool loadMedia();
+
+        /* Board Flipping */
+        bool isBoardFlipped;
+
+        /* GUI Methods */
         void clearWindow();
         void updateWindow();
         void renderBoardSquare(int col, int row);
@@ -68,6 +77,7 @@ class Graphics {
         void renderDraggedPiece(const Board & board, int index, int mouseX, int mouseY);
         void animatePieceMoving(const Board & board, int fromIndex, int toIndex);
         void printText(const Board & board, std::string & text);
+        void flipBoard();
 };
 
 #endif

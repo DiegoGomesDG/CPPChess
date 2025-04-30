@@ -91,7 +91,6 @@ void King::computeCastling() {
 
         if (canCastle)
             validMoves.push_back(kingSquare + 2);
-
     }
 
     if (queenSideCastle) {
