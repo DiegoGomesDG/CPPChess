@@ -7,6 +7,7 @@ DIR_SRC = src
 DIR_HEADERS = include
 DIR_OBJS = obj
 DIR_BUILD = build
+IMGUI_DIR = lib/imgui
 
 ########## Compiler ##########
 CC = g++
@@ -21,12 +22,16 @@ INCLUDE_FLAGS = -I$(DIR_HEADERS) -I/opt/homebrew/include/SDL2 -I/opt/homebrew/Ce
 
 # Linker flags and libraries
 # pkg-config --libs sdl2 SDL2_mixer SDL2_image SDL2_ttf
-LINKER_FLAGS = -L/opt/homebrew/Cellar/sdl2_mixer/2.8.1_1/lib -lSDL2_mixer -L/opt/homebrew/Cellar/sdl2_image/2.8.8/lib -lSDL2_image -L/opt/homebrew/Cellar/sdl2_ttf/2.24.0/lib -lSDL2_ttf -L/opt/homebrew/lib -lSDL2 
+LINKER_FLAGS = -L/opt/homebrew/Cellar/sdl2_mixer/2.8.1_1/lib -lSDL2_mixer -L/opt/homebrew/Cellar/sdl2_image/2.8.8/lib -lSDL2_image -L/opt/homebrew/Cellar/sdl2_ttf/2.24.0/lib -lSDL2_ttf -L/opt/homebrew/lib -lSDL2
+LINKER_FLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends 
 # LIBS = -lm -lSDL2 -lSDL2_image
 
 ########## List with Files ##########
 SRC_FILES = $(wildcard $(DIR_SRC)/*.cpp)
 OBJ_FILES = $(patsubst $(DIR_SRC)/%.cpp, $(DIR_OBJS)/%.o, $(SRC_FILES))
+
+SRC_FILES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
+SRC_FILES += $(IMGUI_DIR)/backends/imgui_impl_sdl2.cpp $(IMGUI_DIR)/backends/imgui_impl_sdlrenderer2.cpp
 
 ########## Make ##########
 # Default target: build the main executable

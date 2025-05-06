@@ -34,6 +34,9 @@ class ChessGame {
         /* Constructor with a the initial position */
         ChessGame(const std::string& fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
+        /* Get Renderer */
+        
+
         /* Reset the Game */
         void resetGame();
 

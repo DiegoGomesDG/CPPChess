@@ -4,5 +4,8 @@
 # Ignore Games Folder
 games
 
+# Ignore Original
+
+
 # Ignore clangd file
 compile_commands.json

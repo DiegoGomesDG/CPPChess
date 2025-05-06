@@ -49,8 +49,8 @@ class Graphics {
         ~Graphics();
         
         /* Getters for the window and renderer, to be used if necessary */
-        //SDL_Window * getWindow() const {return window;};
-        //SDL_Renderer * getRenderer() const {return renderer;};
+        SDL_Window * getWindow() const {return window;};
+        SDL_Renderer * getRenderer() const {return renderer;};
 
         /* Media Loader */
         bool loadMedia();
