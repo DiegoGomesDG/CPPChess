@@ -1,11 +1,22 @@
+/* Standard Libraries */
+#include <fstream>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
+/* User Libraries */
 #include "Game.hpp"
 #include "Graphics.hpp"
 #include "Piece.hpp"
+
+/* SDL */
 #include "SDL_events.h"
 #include "SDL_mixer.h"
 
+
 /* Game Loader */
-ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), wasClicked(false) {
+ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), halfMoveClock(0), fullMoveClock(1), wasClicked(false) {
     board.loadFromFEN(fen); 
     graphics.clearWindow();
     graphics.loadMedia();
@@ -13,8 +24,18 @@ ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(thi
     Mix_PlayChannel(-1, gameStartSound, 0);
 }
 
+/* Reset the Game */
+void ChessGame::resetGame() {
+    state = GameState::Idle; /* Reset */
+    focusIndex = -1; /* Reset */
+    targetIndex = -1; /* Reset */
+    moveList.clear(); /* Clear the Move List */
+    board.loadFromFEN(); /* Load Default Board */
+    graphics.renderBoardWithPieces(board); /* Render */
+}
+
 /* Works on basis of a High Level State Machine (Digital Design 1, 1st Semester) */
-void ChessGame::handleStateTransition() {
+/* void ChessGame::handleStateTransition() {
 
     switch(state) {
 
@@ -26,14 +47,12 @@ void ChessGame::handleStateTransition() {
 
         case GameState::Processing:
             
-
-
         case GameState::GameOver:
 
     }
-}
+} */
 
-/* Compute all possible pseudomoves according to the piece offsets */
+/* Handle the different events */
 void ChessGame::handleEvent(SDL_Event & event) {
     SDL_Point mousePos;
     SDL_GetMouseState(&mousePos.x, &mousePos.y);
@@ -41,7 +60,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
     switch(event.type) {
     
     case SDL_QUIT:
-        state = GameState::GameOver;
+        state = GameState::Quit;
         return;
 
     case SDL_KEYDOWN:
@@ -172,11 +191,14 @@ void ChessGame::handleEvent(SDL_Event & event) {
             if(targetIndex == board.getEnPassantIndex())
                 Mix_PlayChannel(-1, captureSound, 0);
 
+            /* Register Move */
+            registerMove();
 
             /* Execute the move on the logical board */
             if (board.movePiece(focusIndex, targetIndex)) {
                 // Switch turns
                 turn = (turn == Color::White) ? Color::Black : Color::White;
+
                 if(board.isKingInCheck(turn)) {
                     Mix_PlayChannel(-1, moveCheckSound, 0);
                 } else {
@@ -199,74 +221,122 @@ void ChessGame::handleEvent(SDL_Event & event) {
             Mix_PlayChannel(-1, illegalMoveSound, 0);
         }
 
-        /* TESTING CHECKMATE */
+        /* Increment Full Move Clock */
+        if (turn == Color::Black) {
+            ++fullMoveClock;
+        }
+
+        /* Check if it is a Checkmate */
         if (!board.existLegalMoves(turn)) {
             if (board.isKingInCheck(turn)) {
-                std::string text = "CHECKMATE";
-                graphics.printText(board, text);
+                state = GameState::GameOver;
             }
         }
 
         // Reset state
-        state = GameState::Idle;
+        if (state != GameState::GameOver) {
+            state = GameState::Idle;
+        }
+        std::cerr << moveList.back() << std::endl;
         focusIndex = -1;
         targetIndex = -1;
+        
+    }
+
+    if (state == GameState::GameOver) {
+        std::string outcome;
+        std::string inMoveList;
+        if (board.isKingInCheck(turn)) {
+            outcome = (turn == Color::White) ? "Black Wins by Checkmate" : "White Wins by Checkmate";
+            inMoveList = (turn == Color::White) ? "0-1" : "1-0";
+        } else {
+            outcome = "Stalemate";
+            inMoveList = "1/2-1/2";
+        }
+        graphics.printText(board, outcome);
+        moveList.push_back(inMoveList);
+        generatePGN(inMoveList);
+        SDL_Delay(5000);
+        resetGame();
     }
 
 }
 
-void ChessGame::processMove() {
-    if (focusIndex != -1 && targetIndex != -1) return;
-    Piece * focusedPiece = board.board[focusIndex];
-    Piece * targetPiece = board.board[targetIndex];
-    if (board.validateMove(focusIndex, targetIndex)) {
-        /* Animate the move if it was a click (not drag) */
-        if (wasClicked) {
-            graphics.animatePieceMoving(board, focusIndex, targetIndex);
-            wasClicked = false;
-        }
+/* Register a Move. Partially implemented, and is not totally according to the Standard Algebraic Notation */
+void ChessGame::registerMove() {
+    std::string move;
+    Piece * movingPiece = board.board[focusIndex];
+    Piece * targetSquare = board.board[targetIndex];
+    if (movingPiece == nullptr) return; /* Throw?? */
 
-        /* Play the capture sound if it is an en-passant */
-        if(targetIndex == board.getEnPassantIndex())
-            Mix_PlayChannel(-1, captureSound, 0);
+    int fromIndex = focusIndex;
+    int destIndex = targetIndex;
 
-
-        /* Execute the move on the logical board */
-        if (board.movePiece(focusIndex, targetIndex)) {
-            // Switch turns
-            turn = (turn == Color::White) ? Color::Black : Color::White;
-            if(board.isKingInCheck(turn)) {
-                Mix_PlayChannel(-1, moveCheckSound, 0);
-            } else {
-                if(targetPiece != nullptr) {
-                    Mix_PlayChannel(-1, captureSound, 0);
-                } else if (abs(targetIndex - focusIndex) == 2 && focusedPiece->getType() == PieceType::King) {
-                    Mix_PlayChannel(-1, castleSound, 0);
-                } else {
-                    Mix_PlayChannel(-1, moveSound, 0);
-                }
-            }
-            // Update the board display
-            graphics.renderBoardWithPieces(board);
-        } else {
-            // Handle invalid move (should not happen as we validated earlier)
-            Mix_PlayChannel(-1, illegalMoveSound, 0);
-        }
-    } else {
-        // Handle invalid move
-        Mix_PlayChannel(-1, illegalMoveSound, 0);
+    /* Add Numbering for White Moves */
+    if (turn == Color::White) {
+        /* https://stackoverflow.com/questions/5590381/how-to-convert-int-to-string-in-c*/
+        std::string number = std::to_string(fullMoveClock) + ".";
+        move.append(number);
     }
 
-    /* TESTING CHECKMATE */
-    if (!board.existLegalMoves(turn)) {
-        if (board.isKingInCheck(turn)) {
-            std::string text = "CHECKMATE";
-            graphics.printText(board, text);
-        }
+    /* Pawn Moves */
+    if (movingPiece->getType() == PieceType::Pawn) {
+        move.append(Board::indexToAlgebraic(fromIndex));
+        move.append(Board::indexToAlgebraic(destIndex));
+        /* Add move and return */
+        moveList.push_back(move);
+        return;
     }
 
-    // Reset state
-    state = GameState::Idle;
-    focusIndex = -1;
-    targetIndex = -1;
+    /* Other Pieces */
+    PieceType type = movingPiece->getType();
+    char pieceID = '\0';
+    switch (type) {
+        case PieceType::Bishop: pieceID = 'B'; break;
+        case PieceType::Knight: pieceID = 'N'; break;
+        case PieceType::Rook: pieceID = 'R'; break;
+        case PieceType::Queen: pieceID = 'Q'; break;
+        case PieceType::King: pieceID = 'K'; break;
+        default: break;
+    }
+
+    move += pieceID; /* Add the Piece Identifier */
+    move.append(Board::indexToAlgebraic(fromIndex));
+    if (targetSquare != nullptr) move += 'x'; /* Add x if it is a capture */
+    move.append(Board::indexToAlgebraic(destIndex)); /* Add destination square*/
+    moveList.push_back(move); /* add move to the list */
+
+}
+
+/* Initialize a PGN File (Not the full implementation for now). Asked to DeepSeek */
+bool ChessGame::generatePGN(const std::string & result) {
+
+    /* Create File Name using the Time */
+    auto now = std::time(nullptr);
+    std::tm tm = *std::localtime(&now);
+
+    std::ostringstream oss;
+    std::ostringstream dateoss;
+
+    oss << "games/" << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S") << ".pgn";
+    dateoss << std::put_time(&tm, "%Y.%m.%d");
+
+    std::string filename = oss.str();
+    std::string date = dateoss.str();
+
+    /* Create File */
+    std::fstream pgn(filename, std::ios::out);
+
+    /* Write Tags */
+    pgn << "[Event \"Two Player Chess\"]" << std::endl;
+    pgn << "[Site \"CPPChess Project\"]" << std::endl;
+    pgn << "[Date \"" << date << "\"]" << std::endl;
+    pgn << "[Result " << result << "\"]";
+    pgn << std::endl; /* Separation */
+
+    /* Write all the moves in the Vector */
+    for (std::string & move : moveList) {
+        pgn << move << " ";
+    }
+
 }

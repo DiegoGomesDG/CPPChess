@@ -613,7 +613,6 @@ void Graphics::printText(const Board & board, std::string & text) {
     int y = (WIN_HEIGHT - renderText.getHeight())/2;
 
     renderText.renderText(renderer, x, y);
-    SDL_Delay(1000);
     updateWindow();
 }
 

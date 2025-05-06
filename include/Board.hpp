@@ -39,12 +39,12 @@ class Board {
         static int algebraicToIndex(const std::string & notation);
         static std::string indexToAlgebraic(int index);
 
-        /* Clear the board*/
+        /* Clear/Reset the board*/
         void clearBoard();
 
         /* Piece creation and board initialization */
         Piece * createPiece(PieceType type, Color color, int position);
-        bool loadFromFEN(const std::string & fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -");
+        bool loadFromFEN(const std::string & fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         /* Helpers for move computation */
         static bool isValidIndex(int index);

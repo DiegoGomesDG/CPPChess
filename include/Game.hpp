@@ -3,23 +3,19 @@
 
 #include "Graphics.hpp"
 #include "Board.hpp"
+#include <fstream>
 
 enum class GameState {
     Idle,
     PieceSelected,
     Dragging,
     Processing,
-    GameOver
-};
-
-enum class GameResult {
-    Ongoing,
-    WhiteWins,
-    BlackWins,
-    Draw
+    GameOver,
+    Quit
 };
 
 class ChessGame {
+    
     private:
         GameState state;
         Board board;
@@ -27,20 +23,43 @@ class ChessGame {
         int focusIndex;
         int targetIndex;
         Color turn;
+        int halfMoveClock;
+        int fullMoveClock;
         bool leftMouseButtonDown;
         bool wasClicked;
+        std::vector<std::string> moveList;
+        
     public:
-        ChessGame(const std::string& fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq");
 
+        /* Constructor with a the initial position */
+        ChessGame(const std::string& fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+        /* Reset the Game */
+        void resetGame();
+
+        /* Turn Methods */
         void setTurn(Color color) {turn = color;}
         Color getTurn() const {return turn;}
 
-        void handleStateTransition();
+        /* Half Move Clock Methods */
+        void setHalfMoveClock(int value) {halfMoveClock = value;}
+        int getHalfMoveClock() const {return halfMoveClock;}
+
+        /* Full Move Clock Methods*/
+        void setFullMoveClock(int value) {fullMoveClock = value;}
+        int getFullMoveClock() const {return fullMoveClock;}
+
+        /* State transition, event handler */
         void handleEvent(SDL_Event & event);
         void processMove();
 
+        /* Game Status */
         bool isGameOver() const {return state == GameState::GameOver;}
-        Graphics * getGraphic() {return &graphics;}
+        bool isQuit() const {return state == GameState::Quit;}
+
+        /* File Handling and Register Moves */
+        bool generatePGN(const std::string & result = "");
+        void registerMove();
 };
 
 #endif

@@ -37,11 +37,16 @@ void King::computeMoves() {
 
     for (int offset : offsets) {
         int targetIndex = fromIndex + offset;
+        int currentCol = fromIndex % 8;
+        int nextCol = targetIndex % 8;
         if (targetIndex < 0 || targetIndex >= 64) continue;
+
+        /* Prevent Wrap Around*/
+        int colDiff = std::abs(nextCol - currentCol);
         
         SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
-        if (status == SquareStatus::Empty || status == SquareStatus::Enemy) {
+        if ((status == SquareStatus::Empty || status == SquareStatus::Enemy) && colDiff <= 1) {
             if (getColor() == Color::White && !board->blackAttackBoard[targetIndex])
                 validMoves.push_back(targetIndex);
             if (getColor() == Color::Black && !board->whiteAttackBoard[targetIndex])

@@ -1,5 +1,8 @@
 # Ignore all hidden directories
 .*/
 
+# Ignore Games Folder
+games
+
 # Ignore clangd file
 compile_commands.json

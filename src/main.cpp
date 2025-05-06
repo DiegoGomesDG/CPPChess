@@ -6,11 +6,11 @@
 
 int main(int argc, char* argv[]) {
 	
-	std::string fen = (argc > 1) ? argv[1] : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
+	std::string fen = (argc > 1) ? argv[1] : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     ChessGame game(fen);
 
     SDL_Event e;
-    while (!game.isGameOver()) {
+    while (!game.isQuit()) {
         while (SDL_PollEvent(&e)) {
             game.handleEvent(e);
         }

@@ -127,6 +127,7 @@ void Board::clearBoard() {
     }
     whiteKing = nullptr;
     blackKing = nullptr;
+    enPassantIndex = -1;
 }
 
 /* Dynamically allocates a piece according to the type, color and position */
@@ -149,10 +150,10 @@ bool Board::loadFromFEN(const std::string & fen) {
     clearBoard();
     /* https://www.geeksforgeeks.org/how-to-split-string-by-delimiter-in-cpp/*/
     std::istringstream fenStream(fen);
-    std::string piecePlacement, activeColor, castlingRights, enPassant;
+    std::string piecePlacement, activeColor, castlingRights, enPassant, halfMoveClock, fullMoveClock;
 
     /* Split FEN into main parts */
-    if (!(fenStream >> piecePlacement >> activeColor >> castlingRights >> enPassant)) {
+    if (!(fenStream >> piecePlacement >> activeColor >> castlingRights >> enPassant >> halfMoveClock >> fullMoveClock)) {
         return false; /* Invalid FEN */
     }
 
@@ -242,6 +243,12 @@ bool Board::loadFromFEN(const std::string & fen) {
     } else {
         enPassantIndex = Board::algebraicToIndex(enPassant);
     }
+
+    /* Set Half Move Clock */
+    game->setHalfMoveClock(std::stoi(halfMoveClock));
+
+    /* Set Full Move Clock */
+    game->setFullMoveClock(std::stoi(fullMoveClock));
 
     /* Precompute valid pseudomoves and attackboards */
     computeAllMoves();
@@ -392,8 +399,10 @@ bool Board::movePiece(int fromIndex, int toIndex) {
     if (targetPiece && targetPiece->getType() == PieceType::King)
         return false;
 
-    // 7. Execute real move (passed validation)
-    if (targetPiece && targetPiece->getType() != PieceType::King) delete targetPiece;
+    /* Delete a piece if it is not a King or not empty */
+    if (targetPiece && targetPiece->getType() != PieceType::King) {
+        delete targetPiece;
+    }
 
     if (enPassantCapture) {
         int capturedPawnIndex = (movingPiece->getColor() == Color::White) ? toIndex - 8 : toIndex + 8;
@@ -480,7 +489,7 @@ bool Board::movePiece(int fromIndex, int toIndex) {
         whiteKing->setCheck(whiteInCheck);
         blackKing->setCheck(blackInCheck);
     }
-
+    
     return true;
 
 }
