@@ -18,7 +18,7 @@
 /* Game Loader */
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), halfMoveClock(0), fullMoveClock(1), wasClicked(false) {
     board.loadFromFEN(fen); 
-    graphics.clearWindow();
+    //graphics.clearWindow();
     graphics.loadMedia();
     graphics.renderBoardWithPieces(board);
     Mix_PlayChannel(-1, gameStartSound, 0);
@@ -34,39 +34,30 @@ void ChessGame::resetGame() {
     graphics.renderBoardWithPieces(board); /* Render */
 }
 
-/* Works on basis of a High Level State Machine (Digital Design 1, 1st Semester) */
-/* void ChessGame::handleStateTransition() {
 
+/* Handle Render according to different States */
+void ChessGame::handleRender() {
     switch(state) {
-
-        case GameState::Idle:
-        
-        case GameState::PieceSelected:
-
-        case GameState::Dragging:
-
-        case GameState::Processing:
+        case GameState::Idle: graphics.renderBoardWithPieces(board); break;
+        case GameState::PieceSelected: graphics.selectPiece(board, focusIndex); break;
+        case GameState::Dragging: graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y); break;
             
-        case GameState::GameOver:
-
+            
+        default: break;
     }
-} */
+}
 
 /* Handle the different events */
 void ChessGame::handleEvent(SDL_Event & event) {
-    SDL_Point mousePos;
-    SDL_GetMouseState(&mousePos.x, &mousePos.y);
-
-    switch(event.type) {
     
-    case SDL_QUIT:
-        state = GameState::Quit;
-        return;
+    SDL_GetMouseState(&mousePos.x, &mousePos.y);
+    
+    switch(event.type) {
 
     case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_f) {
             graphics.flipBoard();
-            graphics.renderBoardWithPieces(board);
+            //graphics.renderBoardWithPieces(board);
             break;
         }
 
@@ -78,7 +69,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
         }
 
         if(state == GameState::Dragging && focusIndex != -1) {
-            graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
+            //graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
         }
         break;
 
@@ -103,7 +94,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                         focusIndex = clickedIndex;
                         state = GameState::PieceSelected;
                         board.validateMovesForPiece(focusIndex);
-                        graphics.selectPiece(board, focusIndex);
+                        //graphics.selectPiece(board, focusIndex);
                     }
                 } else if (state == GameState::PieceSelected) {
                     targetIndex = clickedIndex;
@@ -120,7 +111,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                         if (targetPiece && targetPiece->getColor() == turn) {
                             focusIndex = targetIndex;
                             board.validateMovesForPiece(focusIndex);
-                            graphics.selectPiece(board, focusIndex);
+                            //graphics.selectPiece(board, focusIndex);
                             return;
                         }
                         if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
@@ -134,7 +125,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                             state = GameState::Idle;
                             focusIndex = -1;
                             targetIndex = -1;
-                            graphics.renderBoardWithPieces(board);
+                            //graphics.renderBoardWithPieces(board);
                         }
                     }
                 }
@@ -168,7 +159,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                 } else {
                     /* Invalid Drop, return to previous selection */
                     state = GameState::PieceSelected;
-                    graphics.selectPiece(board, focusIndex);
+                    //graphics.selectPiece(board, focusIndex);
                     Mix_PlayChannel(-1, illegalMoveSound, 0);
                 }
             }

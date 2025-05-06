@@ -23,6 +23,9 @@ extern const int SQUARE_SIZE;
 extern const int BORDER_SIZE;
 extern const int WIN_WIDTH;
 extern const int WIN_HEIGHT;
+extern SDL_Color WHITE_SQUARE;
+extern SDL_Color BLACK_SQUARE;
+extern SDL_Color BKGD_COLOR;
 
 /* Global Sound Effects */
 extern Mix_Chunk * gameStartSound;
@@ -57,6 +60,7 @@ class Graphics {
 
         /* Board Flipping */
         bool isBoardFlipped;
+        bool showMarkings;
 
         /* GUI Methods */
         void clearWindow();

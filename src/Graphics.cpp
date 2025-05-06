@@ -4,9 +4,15 @@
 #include "Board.hpp"
 #include "King.hpp"
 #include "SDL_mixer.h"
+#include "SDL_video.h"
 #include "Texture.hpp"
 #include "Piece.hpp"
 #include "Pawn.hpp"
+
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
+
 
 /* ##### Standard Libraries ##### */
 #include <iostream>
@@ -17,21 +23,30 @@ const int ROW = 8;
 const int COL = 8;
 const int SQUARE_SIZE = 90; /* Suggested: 90 */
 const int BORDER_SIZE = 50; /* Suggested: 45 */
-const int WIN_WIDTH = COL * SQUARE_SIZE + 2 * BORDER_SIZE;
-const int WIN_HEIGHT = ROW * SQUARE_SIZE + 2 * BORDER_SIZE;
+
+const int LEFT_BORDER_SIZE = 50;
+const int RIGHT_BORDER_SIZE = 50;
+const int TOP_BORDER_SIZE = 50;
+const int BOTTOM_BORDER_SIZE = 50;
+
+const int WIN_WIDTH = COL * SQUARE_SIZE + LEFT_BORDER_SIZE + RIGHT_BORDER_SIZE;
+const int WIN_HEIGHT = ROW * SQUARE_SIZE + TOP_BORDER_SIZE + BOTTOM_BORDER_SIZE;
 int physW, physH; /* Logical Size */
 float scaleX, scaleY; /* Scaling Factor */
 
 /* ##### Board Color Properties ##### */
-const SDL_Color WHITE_SQUARE = {0xEC, 0xDA, 0xB9, 0xFF};
-const SDL_Color BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
-const SDL_Color BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
+const SDL_Color DEFAULT_WHITE_SQUARE = {0xEC, 0xDA, 0xB9, 0xFF};
+const SDL_Color DEFAULT_BLACK_SQUARE = {0xAE, 0x8A, 0x68, 0xFF};
+const SDL_Color DEFAULT_BKGD_COLOR = {0x16, 0x15, 0x12, 0xFF};
+SDL_Color WHITE_SQUARE;
+SDL_Color BLACK_SQUARE;
+SDL_Color BKGD_COLOR;
 const SDL_Color HIGHLIGHT = {0x7F, 0x17, 0x1F, 0x80};
 const SDL_Color BOARD_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
 const SDL_Color STATUS_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
 
 /* Move Animations */
-const int durationMs = 100;
+const int durationMs = 150;
 const int fps = 120;
 
 /* ##### Global Textures ##### */
@@ -78,6 +93,12 @@ Graphics::Graphics() {
     if(!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"))
         std::cerr << "Warning: Linear texture filtering not enabled!";
 
+    /* ImGui Required*/
+    // std::cerr << std::endl << SDL_GetCurrentVideoDriver();
+    #ifdef SDL_HINT_IME_SHOW_UI
+    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+    #endif
+
     /* Create WINDOW */
     window = SDL_CreateWindow("CPPChess", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
     
@@ -101,7 +122,6 @@ Graphics::Graphics() {
         // Throw Error
     }
     SDL_RenderSetScale(renderer, scaleX, scaleY);
-
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
     /* Initialize PNG Loading */
@@ -130,13 +150,30 @@ Graphics::Graphics() {
             // SDL y-axis is top-down, so flip row to draw bottom-up
             int sdlRow = (ROW - 1) - row;
 
-            squares[index] = {BORDER_SIZE - 1 + col * SQUARE_SIZE, BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+            squares[index] = {LEFT_BORDER_SIZE - 1 + col * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
         }
     }
 
-    /* Board Flipped */
+    /* Initialize Default Colors */
+    WHITE_SQUARE = DEFAULT_WHITE_SQUARE;
+    BLACK_SQUARE = DEFAULT_BLACK_SQUARE;
+    BKGD_COLOR = DEFAULT_BKGD_COLOR;
+
+    /* Board Flipped, Show Markings */
+    showMarkings = true;
     isBoardFlipped = false;
+
+    /* Initialize imgui */
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer2_Init(renderer);
+
+    ImGui::StyleColorsDark();
+
     
+
 }
 
 /* Graphics class destructor. It deallocates all SDL subsystem textures, chunks and windows, then quits the subsystems */
@@ -375,7 +412,7 @@ void Graphics::renderMarkings() {
     if(!isBoardFlipped) {
         /* File Markings */
         for (int i = 0; i < COL; ++i) {
-            boardLetters[i].renderText(renderer, BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+            boardLetters[i].renderText(renderer, BOTTOM_BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BOTTOM_BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
         }
         /* Row Markings */
         for (int i = 0; i < ROW; ++i) {
@@ -384,7 +421,7 @@ void Graphics::renderMarkings() {
     } else { /* Flipped Markings*/
 
         for (int i = 0; i < COL; ++i) {
-            boardLetters[COL - 1 - i].renderText(renderer, BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+            boardLetters[COL - 1 - i].renderText(renderer, BOTTOM_BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
         }
         /* Row Markings */
         for (int i = 0; i < ROW; ++i) {
@@ -407,7 +444,7 @@ void Graphics::renderBoard() {
 		}
         
 	}
-    renderMarkings();
+    if (showMarkings) renderMarkings();
 }
 
 /* Renders a piece placed in the board, in the position provided by index */
@@ -493,27 +530,27 @@ void Graphics::highlightPossibleMoves(const Board & board, int index) {
 
 /* Selects a piece in board according to the index, which means highlighting it and showing all possible moves. It calls the methods defined in Graphics, in a sequential form, to allow a layering. SDL does not provide a layering system, which requires to manually create layers by rendering in order */
 void Graphics::selectPiece(const Board & board, int index) {
-    clearWindow();
+    //clearWindow();
 	renderBoard();
 	highlightSquare(index);
 	renderPieces(board);
     highlightPossibleMoves(board, index);
-	updateWindow();
+	//updateWindow();
 }
 
 /* Renders the full board with all the pieces according to the placement in a Board class */
 void Graphics::renderBoardWithPieces(const Board & board) {
-    clearWindow();
+    //clearWindow();
     renderBoard();
 	renderPieces(board);
-	updateWindow();
+	//updateWindow();
 }
 
 /* Renders a white marking on the square which is the piece is currently hovering */
 void Graphics::renderHoverSquare(int mouseX, int mouseY) {
     int hoverCol, hoverRow;
     
-    if(mouseX < (WIN_WIDTH - BORDER_SIZE) && (mouseX > BORDER_SIZE) && mouseY < (WIN_HEIGHT - BORDER_SIZE) && (mouseY > BORDER_SIZE)) {
+    if(mouseX < (WIN_WIDTH - RIGHT_BORDER_SIZE) && (mouseX > LEFT_BORDER_SIZE) && mouseY < (WIN_HEIGHT - BOTTOM_BORDER_SIZE) && (mouseY > TOP_BORDER_SIZE)) {
         hoverCol = (mouseX - BORDER_SIZE) / SQUARE_SIZE;
         hoverRow = (mouseY - BORDER_SIZE) / SQUARE_SIZE;
     } else {
@@ -522,7 +559,7 @@ void Graphics::renderHoverSquare(int mouseX, int mouseY) {
     }
 
     if (hoverCol > -1 && hoverRow > -1)
-        hoverSquare.renderTexture(renderer, BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
+        hoverSquare.renderTexture(renderer, LEFT_BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, TOP_BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
 }
 
 
@@ -538,7 +575,7 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
 	piece = board.board[index]->getType();
     int pieceID = static_cast<int>(piece);
 
-    clearWindow();
+    //clearWindow();
 	renderBoard();
     renderHoverSquare(mouseX, mouseY);
 	renderPieces(board);
@@ -551,7 +588,7 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
 	if (color == Color::Black)
 		blackPieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
 
-    updateWindow();
+    //updateWindow();
 }
 
 /* Renders a piece moving from the origin index to the destination index. It is called only if the user executed a move by pressing in a valid move square. I used the help of DeepSeek, which gave me the idea of using linear interpolation. It renders according to the given frames per seconds. As the screen of my computer is 120Hz, I set it up to render at 120fps */
@@ -576,7 +613,7 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
         int currentY = static_cast<int>(startY + (endY - startY) * t);
 
         // Clear screen and render base board
-        clearWindow();
+        //clearWindow();
         renderBoard();
 
         // Draw all other pieces
@@ -600,7 +637,7 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
 /* Prints a given text on the center of the screen. The Board parameter is necessary for the renderPieces method */
 void Graphics::printText(const Board & board, std::string & text) {
     /* First, render the board normally */
-    clearWindow();
+    //clearWindow();
     renderBoard();
 	renderPieces(board);
 
@@ -613,7 +650,7 @@ void Graphics::printText(const Board & board, std::string & text) {
     int y = (WIN_HEIGHT - renderText.getHeight())/2;
 
     renderText.renderText(renderer, x, y);
-    updateWindow();
+    //updateWindow();
 }
 
 /* Flips the board */
@@ -628,11 +665,11 @@ void Graphics::flipBoard() {
                 int flippedRow = row;
                 int flippedCol = (COL - 1) - col;
 
-                squares[index] = {BORDER_SIZE - 1 + flippedCol * SQUARE_SIZE, BORDER_SIZE - 1 + flippedRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+                squares[index] = {LEFT_BORDER_SIZE - 1 + flippedCol * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + flippedRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
             } else {
                 int sdlRow = (ROW - 1) - row;
     
-                squares[index] = {BORDER_SIZE - 1 + col * SQUARE_SIZE, BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+                squares[index] = {LEFT_BORDER_SIZE - 1 + col * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
             }
         }
     }

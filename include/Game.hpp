@@ -10,8 +10,7 @@ enum class GameState {
     PieceSelected,
     Dragging,
     Processing,
-    GameOver,
-    Quit
+    GameOver,x3
 };
 
 class ChessGame {
@@ -19,9 +18,9 @@ class ChessGame {
     private:
         GameState state;
         Board board;
-        Graphics graphics;
         int focusIndex;
         int targetIndex;
+        SDL_Point mousePos;
         Color turn;
         int halfMoveClock;
         int fullMoveClock;
@@ -34,8 +33,8 @@ class ChessGame {
         /* Constructor with a the initial position */
         ChessGame(const std::string& fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-        /* Get Renderer */
-        
+        /* Public Graphics */
+        Graphics graphics;
 
         /* Reset the Game */
         void resetGame();
@@ -52,13 +51,13 @@ class ChessGame {
         void setFullMoveClock(int value) {fullMoveClock = value;}
         int getFullMoveClock() const {return fullMoveClock;}
 
-        /* State transition, event handler */
+        /* State transition, event handler, render handler */
         void handleEvent(SDL_Event & event);
+        void handleRender();
         void processMove();
 
         /* Game Status */
         bool isGameOver() const {return state == GameState::GameOver;}
-        bool isQuit() const {return state == GameState::Quit;}
 
         /* File Handling and Register Moves */
         bool generatePGN(const std::string & result = "");
