@@ -9,11 +9,6 @@
 #include "Piece.hpp"
 #include "Pawn.hpp"
 
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
-
-
 /* ##### Standard Libraries ##### */
 #include <iostream>
 #include <cassert>
@@ -46,7 +41,7 @@ const SDL_Color BOARD_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
 const SDL_Color STATUS_TEXT = {0xFF, 0xFF, 0xFF, 0xFF};
 
 /* Move Animations */
-const int durationMs = 150;
+int durationMs = 150;
 const int fps = 120;
 
 /* ##### Global Textures ##### */
@@ -162,18 +157,7 @@ Graphics::Graphics() {
     /* Board Flipped, Show Markings */
     showMarkings = true;
     isBoardFlipped = false;
-
-    /* Initialize imgui */
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-
-    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-    ImGui_ImplSDLRenderer2_Init(renderer);
-
-    ImGui::StyleColorsDark();
-
     
-
 }
 
 /* Graphics class destructor. It deallocates all SDL subsystem textures, chunks and windows, then quits the subsystems */
@@ -224,53 +208,53 @@ bool Graphics::loadMedia() {
     /* ##### White Pieces ##### */
     /* loadTexture returns true if it is successful, false otherwise. So if it is not true, it means it failed */
 
-    if(!whitePieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/white/WhitePawn.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/pieces/default/white/WhitePawn.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/white/WhiteKnight.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/pieces/default/white/WhiteKnight.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/white/WhiteBishop.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/pieces/default/white/WhiteBishop.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/white/WhiteRook.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/pieces/default/white/WhiteRook.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/white/WhiteQueen.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/pieces/default/white/WhiteQueen.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::King)].loadTexture("../assets/white/WhiteKing.png", renderer)) {
+    if(!whitePieces[static_cast<int>(PieceType::King)].loadTexture("../assets/pieces/default/white/WhiteKing.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
     
     /* ##### Black Pieces ##### */
-    if(!blackPieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/black/BlackPawn.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/pieces/default/black/BlackPawn.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/black/BlackKnight.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/pieces/default/black/BlackKnight.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/black/BlackBishop.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/pieces/default/black/BlackBishop.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/black/BlackRook.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/pieces/default/black/BlackRook.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/black/BlackQueen.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/pieces/default/black/BlackQueen.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::King)].loadTexture("../assets/black/BlackKing.png", renderer)) {
+    if(!blackPieces[static_cast<int>(PieceType::King)].loadTexture("../assets/pieces/default/black/BlackKing.png", renderer)) {
         std::cerr << "Failed to load texture! ";
         success = false;
     }

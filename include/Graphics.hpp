@@ -26,6 +26,10 @@ extern const int WIN_HEIGHT;
 extern SDL_Color WHITE_SQUARE;
 extern SDL_Color BLACK_SQUARE;
 extern SDL_Color BKGD_COLOR;
+extern const SDL_Color DEFAULT_WHITE_SQUARE;
+extern const SDL_Color DEFAULT_BLACK_SQUARE;
+extern const SDL_Color DEFAULT_BKGD_COLOR;
+extern int durationMs;
 
 /* Global Sound Effects */
 extern Mix_Chunk * gameStartSound;

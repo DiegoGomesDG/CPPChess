@@ -39,6 +39,9 @@ class Board {
         static int algebraicToIndex(const std::string & notation);
         static std::string indexToAlgebraic(int index);
 
+        /* Get the King */
+        King * getKing(Color color) {return (color == Color::White) ? whiteKing : blackKing;}
+
         /* Clear/Reset the board*/
         void clearBoard();
 

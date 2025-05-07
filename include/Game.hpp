@@ -3,14 +3,14 @@
 
 #include "Graphics.hpp"
 #include "Board.hpp"
-#include <fstream>
+
 
 enum class GameState {
     Idle,
     PieceSelected,
     Dragging,
     Processing,
-    GameOver,x3
+    GameOver,
 };
 
 class ChessGame {
@@ -26,7 +26,6 @@ class ChessGame {
         int fullMoveClock;
         bool leftMouseButtonDown;
         bool wasClicked;
-        std::vector<std::string> moveList;
         
     public:
 
@@ -36,8 +35,14 @@ class ChessGame {
         /* Public Graphics */
         Graphics graphics;
 
+        /* Public Move List */
+        std::vector<std::string> moveList;
+
         /* Reset the Game */
         void resetGame();
+
+        /* Load Position from FEN */
+        bool loadFEN(const std::string fen);
 
         /* Turn Methods */
         void setTurn(Color color) {turn = color;}
@@ -50,6 +55,13 @@ class ChessGame {
         /* Full Move Clock Methods*/
         void setFullMoveClock(int value) {fullMoveClock = value;}
         int getFullMoveClock() const {return fullMoveClock;}
+
+        /* Get En Passant Index */
+        int getEnPassantIndex() const {return board.getEnPassantIndex();}
+
+        /* Pieces */
+        int getFocusIndex() const {return focusIndex;}
+        int getTargetIndex() const {return targetIndex;}
 
         /* State transition, event handler, render handler */
         void handleEvent(SDL_Event & event);

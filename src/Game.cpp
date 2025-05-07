@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <fstream>
 
 /* User Libraries */
 #include "Game.hpp"
@@ -34,6 +35,15 @@ void ChessGame::resetGame() {
     graphics.renderBoardWithPieces(board); /* Render */
 }
 
+bool ChessGame::loadFEN(const std::string fen) {
+    state = GameState::Idle; /* Reset */
+    focusIndex = -1; /* Reset */
+    targetIndex = -1; /* Reset */
+    moveList.clear(); /* Clear the Move List */
+    board.loadFromFEN(fen); /* Load Default Board */
+    graphics.renderBoardWithPieces(board); /* Render */
+    return true;
+}
 
 /* Handle Render according to different States */
 void ChessGame::handleRender() {
@@ -329,5 +339,5 @@ bool ChessGame::generatePGN(const std::string & result) {
     for (std::string & move : moveList) {
         pgn << move << " ";
     }
-
+    return true;
 }
