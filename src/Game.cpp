@@ -35,6 +35,7 @@ void ChessGame::resetGame() {
     graphics.renderBoardWithPieces(board); /* Render */
 }
 
+/* Apply a reset and start with a given FEN */
 bool ChessGame::loadFEN(const std::string fen) {
     state = GameState::Idle; /* Reset */
     focusIndex = -1; /* Reset */
