@@ -23,8 +23,7 @@ INCLUDE_FLAGS = -I$(DIR_HEADERS) -I/opt/homebrew/include/SDL2 -I/opt/homebrew/Ce
 # Linker flags and libraries
 # pkg-config --libs sdl2 SDL2_mixer SDL2_image SDL2_ttf
 LINKER_FLAGS = -L/opt/homebrew/Cellar/sdl2_mixer/2.8.1_1/lib  -L/opt/homebrew/Cellar/sdl2_image/2.8.8/lib -L/opt/homebrew/Cellar/sdl2_ttf/2.24.0/lib -L/opt/homebrew/lib
-LINKER_FLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends 
-# LIBS = -lm -lSDL2 -lSDL2_image
+LINKER_FLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
 
 ########## List with Files ##########
 SRC_FILES = $(wildcard $(DIR_SRC)/*.cpp)

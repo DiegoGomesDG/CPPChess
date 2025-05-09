@@ -10,14 +10,16 @@
 #include "Game.hpp"
 #include "Graphics.hpp"
 #include "Piece.hpp"
+#include "ChessGUI.hpp"
 
 /* SDL */
 #include "SDL_events.h"
 #include "SDL_mixer.h"
+#include "SDL_timer.h"
 
 
 /* Game Loader */
-ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), halfMoveClock(0), fullMoveClock(1), wasClicked(false) {
+ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), halfMoveClock(0), fullMoveClock(1), wasClicked(false), processGameOver(false) {
     board.loadFromFEN(fen); 
     //graphics.clearWindow();
     graphics.loadMedia();
@@ -30,6 +32,7 @@ void ChessGame::resetGame() {
     state = GameState::Idle; /* Reset */
     focusIndex = -1; /* Reset */
     targetIndex = -1; /* Reset */
+    processGameOver = false;
     moveList.clear(); /* Clear the Move List */
     board.loadFromFEN(); /* Load Default Board */
     graphics.renderBoardWithPieces(board); /* Render */
@@ -40,6 +43,7 @@ bool ChessGame::loadFEN(const std::string fen) {
     state = GameState::Idle; /* Reset */
     focusIndex = -1; /* Reset */
     targetIndex = -1; /* Reset */
+    processGameOver = false;
     moveList.clear(); /* Clear the Move List */
     board.loadFromFEN(fen); /* Load Default Board */
     graphics.renderBoardWithPieces(board); /* Render */
@@ -52,8 +56,7 @@ void ChessGame::handleRender() {
         case GameState::Idle: graphics.renderBoardWithPieces(board); break;
         case GameState::PieceSelected: graphics.selectPiece(board, focusIndex); break;
         case GameState::Dragging: graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y); break;
-            
-            
+        case GameState::GameOver: graphics.renderBoardWithPieces(board); break;
         default: break;
     }
 }
@@ -62,7 +65,6 @@ void ChessGame::handleRender() {
 void ChessGame::handleEvent(SDL_Event & event) {
     
     SDL_GetMouseState(&mousePos.x, &mousePos.y);
-    
     switch(event.type) {
 
     case SDL_KEYDOWN:
@@ -244,22 +246,9 @@ void ChessGame::handleEvent(SDL_Event & event) {
         targetIndex = -1;
         
     }
-
-    if (state == GameState::GameOver) {
-        std::string outcome;
-        std::string inMoveList;
-        if (board.isKingInCheck(turn)) {
-            outcome = (turn == Color::White) ? "Black Wins by Checkmate" : "White Wins by Checkmate";
-            inMoveList = (turn == Color::White) ? "0-1" : "1-0";
-        } else {
-            outcome = "Stalemate";
-            inMoveList = "1/2-1/2";
-        }
-        graphics.printText(board, outcome);
-        moveList.push_back(inMoveList);
-        generatePGN(inMoveList);
-        SDL_Delay(5000);
-        resetGame();
+    
+    if(state == GameState::GameOver && !processGameOver) {
+        handleGameOver();
     }
 
 }
@@ -310,6 +299,25 @@ void ChessGame::registerMove() {
 
 }
 
+/* Handling GameOver. Prints the text into the screen, generates the PGN file and then resets the game */
+void ChessGame::handleGameOver() {
+    processGameOver = true;
+    std::string outcome;
+    std::string inMoveList;
+
+    if (board.isKingInCheck(turn)) {
+        outcome = (turn == Color::White) ? "Black Wins by Checkmate" : "White Wins by Checkmate";
+        inMoveList = (turn == Color::White) ? "0-1" : "1-0";
+    } else {
+        outcome = "Stalemate";
+        inMoveList = "1/2-1/2";
+    }
+    graphics.printText(board, outcome);
+    moveList.push_back(inMoveList);
+    generatePGN(inMoveList);
+    SDL_Delay(5000);
+}
+
 /* Initialize a PGN File (Not the full implementation for now). Asked to DeepSeek */
 bool ChessGame::generatePGN(const std::string & result) {
 
@@ -326,6 +334,11 @@ bool ChessGame::generatePGN(const std::string & result) {
     std::string filename = oss.str();
     std::string date = dateoss.str();
 
+    /* Check if the Vector is not empty */
+    if (moveList.empty()) {
+        return false;
+    }
+
     /* Create File */
     std::fstream pgn(filename, std::ios::out);
 
@@ -333,7 +346,7 @@ bool ChessGame::generatePGN(const std::string & result) {
     pgn << "[Event \"Two Player Chess\"]" << std::endl;
     pgn << "[Site \"CPPChess Project\"]" << std::endl;
     pgn << "[Date \"" << date << "\"]" << std::endl;
-    pgn << "[Result " << result << "\"]";
+    pgn << "[Result \"" << result << "\"]";
     pgn << std::endl; /* Separation */
 
     /* Write all the moves in the Vector */

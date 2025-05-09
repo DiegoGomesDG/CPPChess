@@ -4,6 +4,8 @@
 #include "Graphics.hpp"
 #include "Board.hpp"
 
+/* ##### Class Forward Declaration ##### */
+class ChessGUI;
 
 enum class GameState {
     Idle,
@@ -18,6 +20,7 @@ class ChessGame {
     private:
         GameState state;
         Board board;
+        ChessGUI * gui;
         int focusIndex;
         int targetIndex;
         SDL_Point mousePos;
@@ -26,7 +29,7 @@ class ChessGame {
         int fullMoveClock;
         bool leftMouseButtonDown;
         bool wasClicked;
-        
+        bool processGameOver;
     public:
 
         /* Constructor with a the initial position */
@@ -34,6 +37,12 @@ class ChessGame {
 
         /* Public Graphics */
         Graphics graphics;
+
+        /* Set the GUI Pointer */
+        void setGUIPointer(ChessGUI * inGUI) {gui = inGUI;}
+
+        /* Return State */
+        GameState getState() const {return state;}
 
         /* Public Move List */
         std::vector<std::string> moveList;
@@ -67,6 +76,7 @@ class ChessGame {
         void handleEvent(SDL_Event & event);
         void handleRender();
         void processMove();
+        void handleGameOver();
 
         /* Game Status */
         bool isGameOver() const {return state == GameState::GameOver;}

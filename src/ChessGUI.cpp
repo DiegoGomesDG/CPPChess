@@ -1,14 +1,16 @@
 #include "ChessGUI.hpp"
 #include "Board.hpp"
+#include "Game.hpp"
 #include "Graphics.hpp"
-#include "SDL_timer.h"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
 
+
 /* Constructor of Class Members */
 ChessGUI::ChessGUI(SDL_Window * window, SDL_Renderer * renderer, ChessGame * game) : mWindow(window), mRenderer(renderer), mGame(game) {
     showDemoWindow = false;
+    showGameOver = false;
 }
 
 /* Destructor and Clean-Up */
@@ -64,6 +66,9 @@ void ChessGUI::render() {
         /* Show demo window if triggered */
         if (showDemoWindow)
             ImGui::ShowDemoWindow(&showDemoWindow);
+
+        if(mGame->getState() == GameState::GameOver)
+            gameOverMenu();
 
         /* Info Section */
         if (ImGui::CollapsingHeader("Info")) {
@@ -156,7 +161,7 @@ void ChessGUI::render() {
             if (ImGui::Button("Flip Board")) /* Flip Board*/
                 mGame->graphics.flipBoard();
 
-            ImGui::Checkbox("Hide Markings", &mGame->graphics.showMarkings); /* Hide the ranks and files markings (a...h) and (1...8) */
+            ImGui::Checkbox("Show Markings", &mGame->graphics.showMarkings); /* Hide the ranks and files markings (a...h) and (1...8) */
 
             ImGui::DragInt("animation ms", &durationMs, 1); /* Change the speed of the move animations */
             ImGui::SameLine(); HelpMarker(
@@ -220,6 +225,7 @@ void ChessGUI::render() {
         /* Other stuff such as demo window */
         if (ImGui::CollapsingHeader("Others")) {
             ImGui::Checkbox("Demo Window", &showDemoWindow);
+            ImGui::Checkbox("GameOverMenu", &showGameOver);
         }
 
         ImGui::End();
@@ -228,4 +234,60 @@ void ChessGUI::render() {
     /* Submit for Rendering, which will be updated in the main */
     ImGui::Render();
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), mRenderer);
+}
+
+/* Game Over Option Menu. Implement it later */
+void ChessGUI::gameOverMenu() {
+   
+    /* Start the Dear ImGui frame */
+    //ImGui_ImplSDLRenderer2_NewFrame();
+    //ImGui_ImplSDL2_NewFrame();
+
+    /* Default placement of the window */
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    //ImGui::NewFrame();
+
+    {
+        /* Begin PopUp */
+        ImGui::OpenPopup("Options");
+
+        if (ImGui::BeginPopupModal("Options", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+        {
+            ImGui::Text("Do you wish to Exit or start a New Game?");
+            ImGui::Separator();
+
+            // Calculate button width and spacing
+        const float button_width = 120.0f;
+        const float buttons_spacing = 10.0f;
+        const float total_width = (button_width * 2) + buttons_spacing;
+        
+        // Center the buttons
+        ImGui::SetCursorPosX((ImGui::GetWindowSize().x - total_width) * 0.5f);
+
+        if (ImGui::Button("New Game", ImVec2(button_width, 0))) {
+            mGame->resetGame();
+            showGameOver = false;
+            ImGui::CloseCurrentPopup();
+        }
+        
+        ImGui::SetItemDefaultFocus();
+        ImGui::SameLine(0.0f, buttons_spacing);
+        
+        if (ImGui::Button("Quit", ImVec2(button_width, 0))) {
+            showGameOver = false;
+            SDL_Event event;
+            event.type = SDL_QUIT;
+            SDL_PushEvent(&event);
+            ImGui::CloseCurrentPopup();
+        }
+        
+        ImGui::EndPopup();
+        }
+
+    }
+
+    /* Submit for Rendering, which will be updated in the main */
+    //ImGui::Render();
+    //ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), mRenderer);
 }

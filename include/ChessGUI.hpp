@@ -2,18 +2,13 @@
 #define GUI_H
 
 /* Imports */
-#include "Graphics.hpp"
 #include "Game.hpp"
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
-
-
 
 class ChessGUI {
 
     private:
         bool showDemoWindow;
+        bool showGameOver;
         SDL_Window * mWindow;
         SDL_Renderer * mRenderer;
         ChessGame * mGame;
@@ -27,8 +22,8 @@ class ChessGUI {
         /* Render */
         void render();
 
-
-    
+        /* Game Over Menu */
+        void gameOverMenu();
 
 };
 

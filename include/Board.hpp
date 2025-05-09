@@ -57,7 +57,7 @@ class Board {
         void computeAllMoves();
         void computeAttackBoards();
 
-        /* Move and Move Validation */
+        /* Move, Move Validation, Checkmate detection */
         void validateMovesForPiece(int position);
         bool validateMove(int fromIndex, int toIndex);
         bool movePiece(int fromIndex, int toIndex);

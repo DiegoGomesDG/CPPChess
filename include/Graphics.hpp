@@ -12,6 +12,7 @@
 
 /* ##### Class Forward Declaration ##### */
 class Board;
+class ChessGUI;
 
 /* ##### Project headers ##### */
 #include "Graphics.hpp"
@@ -49,7 +50,7 @@ class Graphics {
         SDL_Renderer * renderer;
         static bool instantiated; /* https://gameprogrammingpatterns.com/singleton.html */
         std::array<SDL_Rect, 64> squares;
-        
+        ChessGUI * gui;
     public:
         /* RAII Technique - Resource Acquisition Is Initialization */
         Graphics();
@@ -58,6 +59,9 @@ class Graphics {
         /* Getters for the window and renderer, to be used if necessary */
         SDL_Window * getWindow() const {return window;};
         SDL_Renderer * getRenderer() const {return renderer;};
+
+        /* Set GUI Pointer (only used for animatePieceMoving)*/
+        void setGUIPointer(ChessGUI * inGUI) {gui = inGUI;}
 
         /* Media Loader */
         bool loadMedia();

@@ -25,6 +25,8 @@ int main(int argc, char * argv[]) {
     /* Create the GUI and initiate it */
     ChessGUI gui(window, renderer, &game);
     gui.init();
+    game.setGUIPointer(&gui);
+    game.graphics.setGUIPointer(&gui);
     
     /* Main Game Loop */
     ImGuiIO& io = ImGui::GetIO(); (void)io; /* Get imgui i/o */

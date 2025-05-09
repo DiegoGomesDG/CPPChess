@@ -8,6 +8,7 @@
 #include "Texture.hpp"
 #include "Piece.hpp"
 #include "Pawn.hpp"
+#include "ChessGUI.hpp"
 
 /* ##### Standard Libraries ##### */
 #include <iostream>
@@ -157,6 +158,9 @@ Graphics::Graphics() {
     /* Board Flipped, Show Markings */
     showMarkings = true;
     isBoardFlipped = false;
+
+    /* Initialise ChessGUI pointer to null */ 
+    gui = nullptr;
     
 }
 
@@ -188,6 +192,9 @@ Graphics::~Graphics() {
     moveCheckSound = nullptr;
     promoteSound = nullptr;
     illegalMoveSound = nullptr;
+
+    /* Set the Pointer to null*/
+    gui = nullptr;
 
 	/* Quit SDL subsystems */
     //instantiated = false;
@@ -612,6 +619,8 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
         else
             blackPieces[static_cast<int>(movingPiece->getType())].renderTexture(renderer, currentX, currentY);
 
+        /* Render GUI while animating */
+        gui->render();
         updateWindow();
         SDL_Delay(frameDelay);
     }
@@ -634,7 +643,7 @@ void Graphics::printText(const Board & board, std::string & text) {
     int y = (WIN_HEIGHT - renderText.getHeight())/2;
 
     renderText.renderText(renderer, x, y);
-    //updateWindow();
+    updateWindow();
 }
 
 /* Flips the board */
