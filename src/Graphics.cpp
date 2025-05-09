@@ -13,6 +13,7 @@
 /* ##### Standard Libraries ##### */
 #include <iostream>
 #include <cassert>
+#include <stdexcept>
 
 /* ##### Window properties according to the size of the board ##### */
 const int ROW = 8;
@@ -83,7 +84,7 @@ Graphics::Graphics() {
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "SDL could not initialize! SDL Error: " << SDL_GetError(); // Implement error handling
-        // Throw Error
+        throw std::runtime_error(std::string("SDL could not initialize! SDL Error: ") + SDL_GetError());
     }
 
     if(!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"))
@@ -98,10 +99,10 @@ Graphics::Graphics() {
     /* Create WINDOW */
     window = SDL_CreateWindow("CPPChess", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
     
-    if (window == NULL) {
+    if (window == nullptr) {
         std::cerr << "Window could not be created! SDL Error: " << SDL_GetError(); // Implement error handling
         SDL_Quit();
-        // Throw Error
+        throw std::runtime_error(std::string("SDL Window could not be created! SDL Error: ") + SDL_GetError());
     }
 
     /* Get Retina Scaling Factors - HIGH DPI Macbook Screen - Scale of 2.0 */
@@ -112,10 +113,10 @@ Graphics::Graphics() {
     /* Create RENDERER for the Window*/
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
-    if(renderer == NULL) {
+    if(renderer == nullptr) {
         std::cerr << "Renderer could not be created! SDL Error: " << SDL_GetError();
         SDL_Quit();
-        // Throw Error
+        throw std::runtime_error(std::string("SDL Renderer could not be created! SDL Error: ") + SDL_GetError());
     }
     SDL_RenderSetScale(renderer, scaleX, scaleY);
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -123,19 +124,20 @@ Graphics::Graphics() {
     /* Initialize PNG Loading */
     int imgFlags = IMG_INIT_PNG;
     if(!(IMG_Init(imgFlags) & imgFlags)) {
-        std::cerr << "DL_image could not initialize! SDL_image Error: " << SDL_GetError();
-        // Throw Error
+        std::cerr << "SDL_image could not initialize! SDL_image Error: " << SDL_GetError();
+        throw std::runtime_error(std::string("SDL_Image could not initialize! SDL_Image Error: ") + SDL_GetError());
     }
 
     /* Initialize SDL_Mixer */
     if(Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0) {
         std::cerr << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << std::endl;
-        // Throw Error
+        throw std::runtime_error(std::string("SDL_Mixer could not initialize! SDL_Mixer Error: ") + Mix_GetError());
     }
 
     /* Initialize SDL_TTF */
     if (TTF_Init() == -1) {
         std::cerr << "SDL_ttf could not initialize! SDL_ttf Error: " << TTF_GetError() << std::endl;
+        throw std::runtime_error(std::string("SDL_TTF could not initialize! SDL_TTF Error: ") + TTF_GetError());
     }
 
     /* Initialize the Board Squares */
@@ -167,9 +169,9 @@ Graphics::Graphics() {
 /* Graphics class destructor. It deallocates all SDL subsystem textures, chunks and windows, then quits the subsystems */
 Graphics::~Graphics() {
 	//Destroy window	
-	if (window != NULL)
+	if (window != nullptr)
 	    SDL_DestroyWindow(window);
-    if (renderer != NULL)    
+    if (renderer != nullptr)    
         SDL_DestroyRenderer(renderer);
 
     /* Free Sound Effects */
@@ -447,7 +449,7 @@ void Graphics::renderPiece(const Board & board, int index) {
     Color color;
 	PieceType piece;
 
-    if(board.board[index] != NULL) {
+    if(board.board[index] != nullptr) {
         color = board.board[index]->getColor();
         piece = board.board[index]->getType();
         int pieceID = static_cast<int>(piece);

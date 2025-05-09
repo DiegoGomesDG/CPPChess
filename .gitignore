@@ -4,8 +4,8 @@
 # Ignore Games Folder
 games
 
-# Ignore Original
-
+# Ignore imgui ini file
+imgui.ini
 
 # Ignore clangd file
 compile_commands.json

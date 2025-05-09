@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
+#include <stdexcept>
 
 
 /* Constructor of Class Members */
@@ -45,7 +46,9 @@ void ChessGUI::init() {
     ImGui_ImplSDL2_InitForSDLRenderer(mWindow, mRenderer);
     ImGui_ImplSDLRenderer2_Init(mRenderer);
 
+    /* Dark Mode */
     ImGui::StyleColorsDark();
+
 }
 
 /* Render */
@@ -121,7 +124,7 @@ void ChessGUI::render() {
                 ImGui::Text("Keys down:");         for (ImGuiKey key = start_key; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1)) { if (funcs::IsLegacyNativeDupe(key) || !ImGui::IsKeyDown(key)) continue; ImGui::SameLine(); ImGui::Text((key < ImGuiKey_NamedKey_BEGIN) ? "\"%s\"" : "\"%s\" %d", ImGui::GetKeyName(key), key); }
 
                 ImGui::TreePop();
-            }            
+            }
 
         }
 
@@ -222,6 +225,22 @@ void ChessGUI::render() {
             }    
         }
 
+        /* Debugger */
+        if (ImGui::CollapsingHeader("Debugger")) {
+            
+            /* Throw errors to test error handling */
+            if (ImGui::TreeNode("Error Handling")) {
+                if(ImGui::Button("Throw a std::runtime_error")) {
+                    throw std::runtime_error("Debug std::runtime_error");
+                }
+                if(ImGui::Button("Throw an unexpected error")) {
+                    throw std::logic_error("Debug random error");
+                }
+
+                ImGui::TreePop();
+            }
+        }
+ 
         /* Other stuff such as demo window */
         if (ImGui::CollapsingHeader("Others")) {
             ImGui::Checkbox("Demo Window", &showDemoWindow);

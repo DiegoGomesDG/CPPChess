@@ -52,18 +52,21 @@ int Board::indexToColumn(int index) {
 /* Converts Chess Algebraic notation to an Index */
 int Board::algebraicToIndex(const std::string & notation) {
     /* A pure (without any marking of checks or captures) algebraic notation should have two characters, one containing the file and the rank */
-    if (notation.length() != 2) return -1; /* Throw an Error or Handle -1 */
+    if (notation.length() != 2)
+        throw std::invalid_argument("Invalid algebraic notation length");
 
-    int col, row;
+    int col = -1, row = -1;
     char file = notation[0];
     if (file >= 'a' && file <= 'h') {
         col = file - 'a';
-    } else return -1; /* Throw an error */
+    } 
+    else throw std::invalid_argument("Invalid file character in algebraic notation");
 
     char rank = notation[1];
     if (file >= '1' && file <= '8') {
         row = rank - '1';
-    } else return -1; /* Throw an error */
+    } 
+    else std::invalid_argument("Invalid rank character in algebraic notation");
 
     return Board::squareToIndex(row, col);
 }
@@ -72,7 +75,7 @@ int Board::algebraicToIndex(const std::string & notation) {
 std::string Board::indexToAlgebraic(int index) {
     if(!isValidIndex(index)) {
         std::string empty = "";
-        return empty; /* Throw an error */
+        return empty;
     }
 
     char file = 'a' + indexToColumn(index);
@@ -154,7 +157,7 @@ bool Board::loadFromFEN(const std::string & fen) {
 
     /* Split FEN into main parts */
     if (!(fenStream >> piecePlacement >> activeColor >> castlingRights >> enPassant >> halfMoveClock >> fullMoveClock)) {
-        return false; /* Invalid FEN */
+        throw std::invalid_argument("FEN string is incomplete or malformed");
     }
 
     int row = (ROW - 1); /* Starts from the 8th row/rank */
@@ -241,7 +244,12 @@ bool Board::loadFromFEN(const std::string & fen) {
     if (enPassant == "-") {
         enPassantIndex = -1;
     } else {
-        enPassantIndex = Board::algebraicToIndex(enPassant);
+        try {
+            enPassantIndex = Board::algebraicToIndex(enPassant);
+        } catch (std::invalid_argument) {
+            std::cerr << "Invalid en-passant target square. Using default value instead" << std::endl;
+            enPassantIndex = -1;
+        }
     }
 
     /* Set Half Move Clock */

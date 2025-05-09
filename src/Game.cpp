@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <fstream>
 
@@ -10,7 +11,7 @@
 #include "Game.hpp"
 #include "Graphics.hpp"
 #include "Piece.hpp"
-#include "ChessGUI.hpp"
+
 
 /* SDL */
 #include "SDL_events.h"
@@ -20,7 +21,13 @@
 
 /* Game Loader */
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), halfMoveClock(0), fullMoveClock(1), wasClicked(false), processGameOver(false) {
-    board.loadFromFEN(fen); 
+    try {
+        board.loadFromFEN(fen); 
+    }
+    catch (std::invalid_argument) {
+        std::cerr << "Invalid FEN. Board initialized using the default initial position" << std::endl;
+        board.loadFromFEN();
+    }
     //graphics.clearWindow();
     graphics.loadMedia();
     graphics.renderBoardWithPieces(board);
@@ -45,7 +52,15 @@ bool ChessGame::loadFEN(const std::string fen) {
     targetIndex = -1; /* Reset */
     processGameOver = false;
     moveList.clear(); /* Clear the Move List */
-    board.loadFromFEN(fen); /* Load Default Board */
+
+    try {
+        board.loadFromFEN(fen); 
+    }
+    catch (std::invalid_argument) {
+        std::cerr << "Invalid FEN. Board initialized using the default initial position" << std::endl;
+        board.loadFromFEN();
+    }
+
     graphics.renderBoardWithPieces(board); /* Render */
     return true;
 }
@@ -185,6 +200,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
         Piece * focusedPiece = board.board[focusIndex];
         Piece * targetPiece = board.board[targetIndex];
         if (board.validateMove(focusIndex, targetIndex)) {
+
             /* Animate the move if it was a click (not drag) */
             if (wasClicked) {
                 graphics.animatePieceMoving(board, focusIndex, targetIndex);
@@ -195,6 +211,14 @@ void ChessGame::handleEvent(SDL_Event & event) {
             if(targetIndex == board.getEnPassantIndex())
                 Mix_PlayChannel(-1, captureSound, 0);
 
+            /* Increment halfMoveClock */
+            halfMoveClock++;
+
+            /* Reset halfMoveClock if it is a pawn or a capture */
+            if (focusedPiece->getType() == PieceType::Pawn || (targetPiece != nullptr)) {
+                halfMoveClock = 0;
+            }
+
             /* Register Move */
             registerMove();
 
@@ -203,6 +227,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
                 // Switch turns
                 turn = (turn == Color::White) ? Color::Black : Color::White;
 
+                /* Manage Sounds Effects :) */
                 if(board.isKingInCheck(turn)) {
                     Mix_PlayChannel(-1, moveCheckSound, 0);
                 } else {
@@ -221,7 +246,6 @@ void ChessGame::handleEvent(SDL_Event & event) {
                 Mix_PlayChannel(-1, illegalMoveSound, 0);
             }
         } else {
-            // Handle invalid move
             Mix_PlayChannel(-1, illegalMoveSound, 0);
         }
 
@@ -235,6 +259,11 @@ void ChessGame::handleEvent(SDL_Event & event) {
             if (board.isKingInCheck(turn)) {
                 state = GameState::GameOver;
             }
+        }
+
+        /* Check for 50 Move Rule */
+        if (halfMoveClock == 50) {
+            state = GameState::GameOver;
         }
 
         // Reset state
@@ -309,7 +338,12 @@ void ChessGame::handleGameOver() {
         outcome = (turn == Color::White) ? "Black Wins by Checkmate" : "White Wins by Checkmate";
         inMoveList = (turn == Color::White) ? "0-1" : "1-0";
     } else {
-        outcome = "Stalemate";
+        if(halfMoveClock == 50) {
+            outcome = "Draw by 50-Move Rule";
+        } else {
+            outcome = "Stalemate";
+        }
+        
         inMoveList = "1/2-1/2";
     }
     graphics.printText(board, outcome);
@@ -339,19 +373,30 @@ bool ChessGame::generatePGN(const std::string & result) {
         return false;
     }
 
-    /* Create File */
-    std::fstream pgn(filename, std::ios::out);
+    try {
+        /* Create File */
+        std::fstream pgnFile;
+        pgnFile.exceptions(std::ios::failbit | std::ios::badbit);
+        pgnFile.open(filename, std::ios::out);
 
-    /* Write Tags */
-    pgn << "[Event \"Two Player Chess\"]" << std::endl;
-    pgn << "[Site \"CPPChess Project\"]" << std::endl;
-    pgn << "[Date \"" << date << "\"]" << std::endl;
-    pgn << "[Result \"" << result << "\"]";
-    pgn << std::endl; /* Separation */
+        /* Write Tags */
+        pgnFile << "[Event \"Two Player Chess\"]" << std::endl;
+        pgnFile << "[Site \"CPPChess Project\"]" << std::endl;
+        pgnFile << "[Date \"" << date << "\"]" << std::endl;
+        pgnFile << "[Result \"" << result << "\"]";
+        pgnFile << std::endl; /* Separation */
 
-    /* Write all the moves in the Vector */
-    for (std::string & move : moveList) {
-        pgn << move << " ";
+        /* Write all the moves in the Vector */
+        for (std::string & move : moveList) {
+            pgnFile << move << " ";
+        }
+
+        pgnFile.close();
+        return true;
+
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to create or write PGN file: " << e.what() << std::endl;
+        return false;
     }
-    return true;
+    
 }
