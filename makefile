@@ -13,7 +13,7 @@ IMGUI_DIR = lib/imgui
 CC = g++
 
 # Compiler flags (strictly for the compiler)
-CFLAGS = -std=c++11 -Wall -O0 -g
+CFLAGS = -std=c++17 -Wall -O0 -g
 
 
 # Include paths
@@ -57,3 +57,4 @@ run: $(DIR_BUILD)/$(PROJECT_EXE)
 .PHONY: all run
 
 # Generate compile_commands.json for the clangd
+# bear -- make

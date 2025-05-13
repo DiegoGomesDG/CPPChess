@@ -160,6 +160,8 @@ Graphics::Graphics() {
     /* Board Flipped, Show Markings */
     showMarkings = true;
     isBoardFlipped = false;
+    whiteAttack = false;
+    blackAttack = false;
 
     /* Initialise ChessGUI pointer to null */ 
     gui = nullptr;
@@ -535,6 +537,7 @@ void Graphics::selectPiece(const Board & board, int index) {
 void Graphics::renderBoardWithPieces(const Board & board) {
     //clearWindow();
     renderBoard();
+    highlightAttacks(board); // New
 	renderPieces(board);
 	//updateWindow();
 }
@@ -669,4 +672,21 @@ void Graphics::flipBoard() {
         }
     }
     
+}
+
+/* Highlights attacks */
+void Graphics::highlightAttacks(const Board & board) {
+    
+    for (int i = 0; i < 64; ++i) {
+        if (whiteAttack) {
+            if (board.whiteAttackBoard[i]) {
+                highlightSquare(i);
+            }
+        }   
+        if (blackAttack) {
+            if (board.blackAttackBoard[i]) {
+                highlightSquare(i);
+            }
+        }  
+    }
 }

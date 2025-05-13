@@ -9,3 +9,6 @@ imgui.ini
 
 # Ignore clangd file
 compile_commands.json
+
+# Ignore debugging files
+*.dSYM/

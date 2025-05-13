@@ -239,6 +239,12 @@ void ChessGUI::render() {
 
                 ImGui::TreePop();
             }
+            if (ImGui::TreeNode("Attacking Squares")) {
+                ImGui::Checkbox("White Attacks", &mGame->graphics.whiteAttack);
+                ImGui::Checkbox("Black Attacks", &mGame->graphics.blackAttack);
+
+                ImGui::TreePop();
+            }
         }
  
         /* Other stuff such as demo window */

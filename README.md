@@ -1,3 +1,6 @@
+# Digital Chess Board with C++ and SDL2.0
+CPPChess is a fully interactive two-player digital chess game developed in C++ using the SDL2 library. Built as a final project for Basics of Programming 2 at Budapest University of Technology and Economics, this application demonstrates learned object-oriented programming principles, with the addition of graphical development.
+
 # Third-Party Libraries and Disclaimers
 ## SDL2
 ### SDL2

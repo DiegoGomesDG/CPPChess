@@ -4,6 +4,7 @@
 #include "../include/ChessGUI.hpp"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
+#include <exception>
 
 /* find src include -name "*.cpp" -o -name "*.hpp" | xargs wc -l */
 
@@ -60,6 +61,7 @@ int main(int argc, char * argv[]) {
         std::cerr << "[ERROR] Fatal error: " << e.what() << std::endl;
         return 1;
     }
+
     catch(...) {
         std::cerr << "[ERROR] Unknown error caught!" << std::endl;
     }

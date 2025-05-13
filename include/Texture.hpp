@@ -19,9 +19,9 @@ class Texture {
         ~Texture();
         void free();
         bool loadTexture(std::string path, SDL_Renderer * renderer);
+        bool loadFromRenderedText(SDL_Renderer * renderer, TTF_Font * font, std::string textureText, SDL_Color textColor);
         void renderTexture(SDL_Renderer * renderer, int x, int y);
         void renderText(SDL_Renderer * renderer, int x, int y, float scale = 1.0);
-        bool loadFromRenderedText(SDL_Renderer * renderer, TTF_Font * font, std::string textureText, SDL_Color textColor);
         int getWidth() const;
         int getHeight() const;
 };

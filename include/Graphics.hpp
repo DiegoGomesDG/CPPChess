@@ -10,6 +10,7 @@
 #include <SDL2_mixer/SDL_mixer.h>
 #include <SDL2_ttf/SDL_ttf.h>
 
+
 /* ##### Class Forward Declaration ##### */
 class Board;
 class ChessGUI;
@@ -69,6 +70,8 @@ class Graphics {
         /* Board Flipping */
         bool isBoardFlipped;
         bool showMarkings;
+        bool whiteAttack;
+        bool blackAttack;
 
         /* GUI Methods */
         void clearWindow();
@@ -83,6 +86,7 @@ class Graphics {
         void highlightSquare(int index);
         void highlightMove(int index);
         void highlightCapture(int index);
+        void highlightAttacks(const Board & board);
         void highlightPossibleMoves(const Board & board, int index);
         void selectPiece(const Board & board, int index);
         void renderHoverSquare(int mouseX, int mouseY);
