@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <string>
 #include <fstream>
+#include <filesystem>
+
+#include <unistd.h>
 
 /* User Libraries */
 #include "Game.hpp"
@@ -256,9 +259,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
 
         /* Check if it is a Checkmate */
         if (!board.existLegalMoves(turn)) {
-            if (board.isKingInCheck(turn)) {
                 state = GameState::GameOver;
-            }
         }
 
         /* Check for 50 Move Rule */
@@ -362,7 +363,7 @@ bool ChessGame::generatePGN(const std::string & result) {
     std::ostringstream oss;
     std::ostringstream dateoss;
 
-    oss << "games/" << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S") << ".pgn";
+    oss << "./games/" << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S") << ".pgn";
     dateoss << std::put_time(&tm, "%Y.%m.%d");
 
     std::string filename = oss.str();
@@ -374,6 +375,15 @@ bool ChessGame::generatePGN(const std::string & result) {
     }
 
     try {
+        
+        /* Print current directory */
+        char buffer[256];
+        if (getcwd(buffer, sizeof(buffer)) != nullptr) {
+            std::cout << "Current directory: " << buffer << std::endl;
+        } else {
+            std::cerr << "Error getting current directory." << std::endl;
+        }
+
         /* Create File */
         std::fstream pgnFile;
         pgnFile.exceptions(std::ios::failbit | std::ios::badbit);

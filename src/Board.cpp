@@ -219,6 +219,10 @@ bool Board::loadFromFEN(const std::string & fen) {
     Color turn = (activeColor == "w") ? Color::White :
     (activeColor == "b") ? Color::Black : Color::White;
     game->setTurn(turn);
+
+    if (!whiteKing || !blackKing) {
+        throw std::invalid_argument("There is no one or both of Kings on the Board!");
+    }
     
     /* Castling Rights of white and black kings */
     if (whiteKing && blackKing) {
@@ -253,10 +257,18 @@ bool Board::loadFromFEN(const std::string & fen) {
     }
 
     /* Set Half Move Clock */
-    game->setHalfMoveClock(std::stoi(halfMoveClock));
+    if (std::stoi(halfMoveClock) >= 0) {
+        game->setHalfMoveClock(std::stoi(halfMoveClock));
+    } else {
+        
+    }
+    
 
     /* Set Full Move Clock */
-    game->setFullMoveClock(std::stoi(fullMoveClock));
+    if (std::stoi(fullMoveClock) >= 1) {
+        game->setFullMoveClock(std::stoi(fullMoveClock));
+    }
+    
 
     /* Precompute valid pseudomoves and attackboards */
     computeAllMoves();
@@ -331,7 +343,7 @@ void Board::validateMovesForPiece(int index) {
 
     // Get all pseudolegal moves first
     std::vector<int> pseudolegalMoves;
-    piece->computeMoves();  // Generates pseudolegal moves
+    //piece->computeMoves();  // Generates pseudolegal moves
     pseudolegalMoves = piece->validMoves;
     std::vector<int> legalMoves;
     
@@ -370,6 +382,7 @@ bool Board::validateMove(int fromIndex, int toIndex) {
     } else {
         return true;
     }
+
 }
 
 bool Board::movePiece(int fromIndex, int toIndex) {

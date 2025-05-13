@@ -3,7 +3,6 @@
 
 /* ##### Standard Libraries ##### */
 #include <array>
-#include <vector>
 
 /* ##### Project Headers ##### */
 #include "Piece.hpp"
