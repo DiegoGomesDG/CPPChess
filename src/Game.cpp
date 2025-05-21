@@ -260,6 +260,7 @@ void ChessGame::handleEvent(SDL_Event & event) {
 
         /* Check if it is a Checkmate */
         if (!board.existLegalMoves(turn)) {
+                state = GameState::GameOver;
             state = GameState::GameOver;
         }
 
@@ -376,15 +377,6 @@ bool ChessGame::generatePGN(const std::string & result) {
     }
 
     try {
-        
-        /* Print current directory */
-        char buffer[256];
-        if (getcwd(buffer, sizeof(buffer)) != nullptr) {
-            std::cout << "Current directory: " << buffer << std::endl;
-        } else {
-            std::cerr << "Error getting current directory." << std::endl;
-        }
-
         /* Create File */
         std::fstream pgnFile;
         pgnFile.exceptions(std::ios::failbit | std::ios::badbit);

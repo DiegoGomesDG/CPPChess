@@ -343,7 +343,7 @@ void Board::validateMovesForPiece(int index) {
 
     // Get all pseudolegal moves first
     std::vector<int> pseudolegalMoves;
-    piece->computeMoves();  // Generates pseudolegal moves
+    //piece->computeMoves();  // Generates pseudolegal moves
     pseudolegalMoves = piece->validMoves;
     std::vector<int> legalMoves;
     
