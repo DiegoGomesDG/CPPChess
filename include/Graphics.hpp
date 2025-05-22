@@ -5,18 +5,14 @@
 #include <iostream>
 
 /* ##### SDL Include ##### */
-#include <SDL2/SDL.h>
-#include <SDL2_image/SDL_image.h>
-#include <SDL2_mixer/SDL_mixer.h>
-#include <SDL2_ttf/SDL_ttf.h>
-
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_mixer.h>
+#include <SDL_ttf.h>
 
 /* ##### Class Forward Declaration ##### */
 class Board;
 class ChessGUI;
-
-/* ##### Project headers ##### */
-#include "Graphics.hpp"
 
 /* Global Variables for Board Properties */
 extern const int ROW;
