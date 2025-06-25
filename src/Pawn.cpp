@@ -26,13 +26,13 @@ void Pawn::computeMoves() {
     /* Single move forward */
     int targetIndex = fromIndex + forward;
     SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
-    if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64)) {
+    if (status == SquareStatus::Empty && Board::isValidIndex(targetIndex)) {
         validMoves.push_back(targetIndex);
 
         /* Double move forward */
         targetIndex = fromIndex + doubleForward;
         status = board->getSquareStatus(fromIndex, targetIndex);
-        if (status == SquareStatus::Empty && (targetIndex >= 0 && targetIndex < 64) && !getHasMoved()) {
+        if (status == SquareStatus::Empty && (Board::isValidIndex(targetIndex)) && !getHasMoved()) {
             validMoves.push_back(targetIndex);
         }
     }
@@ -49,7 +49,6 @@ void Pawn::computeMoves() {
     if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == board->getEnPassantIndex()) {
         validMoves.push_back(targetIndex);
     }
-
 
     /* Capture to Right */
     targetIndex = fromIndex + captureRight;

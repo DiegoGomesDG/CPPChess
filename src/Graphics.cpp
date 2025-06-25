@@ -460,7 +460,7 @@ void Graphics::renderPiece(const Board & board, int index) {
 
         if(piece == PieceType::King) {
             King * king = static_cast<King *>(board.board[index]);
-            if (king->getCheckStatus()) {
+            if (king->isChecked()) {
                 kingInCheck.renderTexture(renderer, dstRect.x, dstRect.y);
             }
         }

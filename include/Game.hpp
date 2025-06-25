@@ -68,14 +68,20 @@ class ChessGame {
         /* Get En Passant Index */
         int getEnPassantIndex() const {return board.getEnPassantIndex();}
 
+        /* Get move count */
+        int getMoveCount() const {return board.moveCount;}
+
         /* Pieces */
         int getFocusIndex() const {return focusIndex;}
         int getTargetIndex() const {return targetIndex;}
 
         /* State transition, event handler, render handler */
-        void handleEvent(SDL_Event & event);
+        void handleStatesProcessing();
         void handleRender();
-        void processMove();
+        void handleEvent(SDL_Event & event);
+
+        /* State Handling */
+        void handleProcessingMove();
         void handleGameOver();
 
         /* Game Status */

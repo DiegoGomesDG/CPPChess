@@ -29,6 +29,7 @@ class Board {
         std::array<int, 64> blackAttackBoard;
         std::array<Piece *, 64> board; /* PUBLIC for simplifying purposes*/
         int castlingOffset; /* just for the animation */
+        int moveCount;
 
         /* Static Methods - Convertion of (row, col) to index and back */
         static int squareToIndex(int row, int col);
@@ -60,9 +61,13 @@ class Board {
         /* Move, Move Validation, Checkmate detection */
         void validateMovesForPiece(int position);
         bool validateMove(int fromIndex, int toIndex);
+        void validateAllNextPlayerMoves(Color turn);
+
         bool movePiece(int fromIndex, int toIndex);
         bool existLegalMoves(Color color);
         bool isKingInCheck(Color color);
+
+        void countMoves(Color color);
 
         /* En Passant Setters/Getters */
         int getEnPassantIndex() const {return enPassantIndex;}

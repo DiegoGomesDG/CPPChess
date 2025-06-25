@@ -2,6 +2,7 @@
 #include "Piece.hpp"
 #include "King.hpp"
 
+
 /* https://www.chessprogramming.org/Efficient_Generation_of_Sliding_Piece_Attacks
     +7    +8    +9
         \  |  /
@@ -32,6 +33,7 @@ Piece * King::clone(Board* newBoard) const {
 std::array<const int, 8> King::offsets = {-9, -8, -7, -1, +1, +7, +8, +9};
 
 void King::computeMoves() {
+
     validMoves.clear();
     int fromIndex = getPosition();
 
@@ -39,7 +41,7 @@ void King::computeMoves() {
         int targetIndex = fromIndex + offset;
         int currentCol = fromIndex % 8;
         int nextCol = targetIndex % 8;
-        if (targetIndex < 0 || targetIndex >= 64) continue;
+        if (!Board::isValidIndex(targetIndex)) continue;
 
         /* Prevent Wrap Around*/
         int colDiff = std::abs(nextCol - currentCol);
@@ -47,11 +49,16 @@ void King::computeMoves() {
         SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
 
         if ((status == SquareStatus::Empty || status == SquareStatus::Enemy) && colDiff <= 1) {
-            if (getColor() == Color::White && !board->blackAttackBoard[targetIndex])
+            if (getColor() == Color::White && !board->blackAttackBoard[targetIndex]) {
                 validMoves.push_back(targetIndex);
-            if (getColor() == Color::Black && !board->whiteAttackBoard[targetIndex])
+            }
+                
+            if (getColor() == Color::Black && !board->whiteAttackBoard[targetIndex]) {
                 validMoves.push_back(targetIndex);
-        }   
+            }
+                
+        }
+        
     }
 
     if(!hasMoved) computeCastling();
@@ -64,9 +71,8 @@ void King::computeMoves() {
 /* Computes the possibility of castle, according to the official chess rules. If the castle is possible, it will add it to the move list, otherwise not. If the piece already moved, it immediatelly returns false as the King has no rights to move */
 void King::computeCastling() {
     int kingSquare = (getColor() == Color::White) ? 4 : 60;
-    if (hasMoved) {
-        return;
-    } /* If the king moved, then it is invalid*/
+    if (hasMoved) return; /* If the king moved, then it is invalid*/
+    if (board->isKingInCheck(getColor())) return; /* If king is in check, you cannot castle*/
 
     /* Generate and Validate a King Side Castle */
     if (kingSideCastle) {

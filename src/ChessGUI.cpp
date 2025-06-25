@@ -79,6 +79,8 @@ void ChessGUI::render() {
             
             /* Turn*/
             ImGui::Text("Turn: %s", mGame->getTurn() == Color::White ? "White" : "Black");
+            /* Move Count */
+            ImGui::Text("Move Count: %d", mGame->getMoveCount());
 
             /* Display informations about the Mouse */
             if (ImGui::TreeNode("Mouse")) {
@@ -263,10 +265,6 @@ void ChessGUI::render() {
 
 /* Game Over Option Menu. Implement it later */
 void ChessGUI::gameOverMenu() {
-   
-    /* Start the Dear ImGui frame */
-    //ImGui_ImplSDLRenderer2_NewFrame();
-    //ImGui_ImplSDL2_NewFrame();
 
     /* Default placement of the window */
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -312,7 +310,4 @@ void ChessGUI::gameOverMenu() {
 
     }
 
-    /* Submit for Rendering, which will be updated in the main */
-    //ImGui::Render();
-    //ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), mRenderer);
 }

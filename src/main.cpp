@@ -40,8 +40,7 @@ int main(int argc, char * argv[]) {
             
             /* Handle Events */
             SDL_Event event;
-            while (SDL_PollEvent(&event))
-            {
+            while (SDL_PollEvent(&event)) {
                 ImGui_ImplSDL2_ProcessEvent(&event);
                 if (event.type == SDL_QUIT)
                     quit = true;
@@ -53,6 +52,7 @@ int main(int argc, char * argv[]) {
                 game.handleEvent(event); /* Handle the events directed to the board */
             }
 
+            game.handleStatesProcessing();
             gui.render(); /* Render the GUI on top of the Board */
             SDL_RenderPresent(renderer); /* Update the Window */
         }

@@ -14,13 +14,12 @@
 #include "Game.hpp"
 #include "Graphics.hpp"
 #include "Piece.hpp"
-
+#include "ChessGUI.hpp"
 
 /* SDL */
 #include "SDL_events.h"
 #include "SDL_mixer.h"
 #include "SDL_timer.h"
-
 
 /* Game Loader */
 ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(this), focusIndex(-1), targetIndex(-1), turn(Color::White), halfMoveClock(0), fullMoveClock(1), wasClicked(false), processGameOver(false) {
@@ -31,7 +30,7 @@ ChessGame::ChessGame(const std::string& fen) : state(GameState::Idle), board(thi
         std::cerr << "Invalid FEN. Board initialized using the default initial position" << std::endl;
         board.loadFromFEN();
     }
-    //graphics.clearWindow();
+
     graphics.loadMedia();
     graphics.renderBoardWithPieces(board);
     Mix_PlayChannel(-1, gameStartSound, 0);
@@ -45,7 +44,7 @@ void ChessGame::resetGame() {
     processGameOver = false;
     moveList.clear(); /* Clear the Move List */
     board.loadFromFEN(); /* Load Default Board */
-    graphics.renderBoardWithPieces(board); /* Render */
+    //graphics.renderBoardWithPieces(board); /* Render */
 }
 
 /* Apply a reset and start with a given FEN */
@@ -64,7 +63,7 @@ bool ChessGame::loadFEN(const std::string fen) {
         board.loadFromFEN();
     }
 
-    graphics.renderBoardWithPieces(board); /* Render */
+    //graphics.renderBoardWithPieces(board); /* Render */
     return true;
 }
 
@@ -79,6 +78,14 @@ void ChessGame::handleRender() {
     }
 }
 
+void ChessGame::handleStatesProcessing() {
+    switch(state) {
+        case GameState::Processing: handleProcessingMove(); break;
+        case GameState::GameOver: handleGameOver(); break;
+        default: break;
+    }
+}
+
 /* Handle the different events */
 void ChessGame::handleEvent(SDL_Event & event) {
     
@@ -88,7 +95,6 @@ void ChessGame::handleEvent(SDL_Event & event) {
     case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_f) {
             graphics.flipBoard();
-            //graphics.renderBoardWithPieces(board);
             break;
         }
 
@@ -97,10 +103,6 @@ void ChessGame::handleEvent(SDL_Event & event) {
         if(leftMouseButtonDown && state == GameState::PieceSelected && focusIndex != -1) {
             state = GameState::Dragging;
             wasClicked = false;
-        }
-
-        if(state == GameState::Dragging && focusIndex != -1) {
-            //graphics.renderDraggedPiece(board, focusIndex, mousePos.x, mousePos.y);
         }
         break;
 
@@ -119,45 +121,37 @@ void ChessGame::handleEvent(SDL_Event & event) {
                     clickedIndex = Board::squareToIndex(row, (COL - 1) - col);
                 }
 
+                /* If it is idle, it means the next state will be piece select */
                 if (state == GameState::Idle) {
                     Piece * piece = board.board[clickedIndex];
                     if (piece && piece->getColor() == turn) {
                         focusIndex = clickedIndex;
                         state = GameState::PieceSelected;
-                        board.validateMovesForPiece(focusIndex);
-                        //graphics.selectPiece(board, focusIndex);
                     }
+
+                /* If it is piece selected, then there is multiple possibilities */
                 } else if (state == GameState::PieceSelected) {
                     targetIndex = clickedIndex;
-                    if (targetIndex == focusIndex) {
-                        /* Clicked Same Square Again */
-                        //state = GameState::Idle;
-                        //focusIndex = -1;
-                        //targetIndex = -1;
-                        //graphics.renderBoardWithPieces(board);
+                    Piece * focusedPiece = board.board[focusIndex];
+                    Piece * targetPiece = board.board[targetIndex];
+                    
+                    /* If is the same color piece, change the focus to the new focused piece*/
+                    if (targetPiece && targetPiece->getColor() == turn) {
+                        focusIndex = targetIndex;
+                        return;
+                    }
+
+                    /* If the focused piece is not null and it is one of the valid moves, then change to move processing, otherwise deselect */
+                    if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
+                        state = GameState::Processing;
+                        wasClicked = true;
+                        //graphics.animatePieceMoving(board, focusIndex, targetIndex);
+
+                    /* Invalid move or empty square -> deselect */
                     } else {
-                        Piece * focusedPiece = board.board[focusIndex];
-                        Piece * targetPiece = board.board[targetIndex];
-                        
-                        if (targetPiece && targetPiece->getColor() == turn) {
-                            focusIndex = targetIndex;
-                            board.validateMovesForPiece(focusIndex);
-                            //graphics.selectPiece(board, focusIndex);
-                            return;
-                        }
-                        if (focusedPiece && focusedPiece->isValidMove(targetIndex)) {
-                            state = GameState::Processing;
-                            wasClicked = true;
-                            //if(targetPiece != nullptr) {
-                            //    Mix_PlayChannel(-1, captureSound, 0);
-                            //} else Mix_PlayChannel(-1, moveSound, 0);
-                        } else {
-                            /* Invalid move or empty square -> deselect */
-                            state = GameState::Idle;
-                            focusIndex = -1;
-                            targetIndex = -1;
-                            //graphics.renderBoardWithPieces(board);
-                        }
+                        state = GameState::Idle;
+                        focusIndex = -1;
+                        targetIndex = -1;
                     }
                 }
             }
@@ -177,90 +171,93 @@ void ChessGame::handleEvent(SDL_Event & event) {
                 } else {
                     targetIndex = Board::squareToIndex(dropRow, (COL - 1) - dropCol);
                 }
-                
+
             } else {
                 targetIndex = -1;
             }
 
             if (state == GameState::Dragging && focusIndex != -1) {
                 Piece * piece = board.board[focusIndex];
-                
                 if (targetIndex != -1 && piece != nullptr && piece->isValidMove(targetIndex)) {
                     state = GameState::Processing;
                 } else {
                     /* Invalid Drop, return to previous selection */
                     state = GameState::PieceSelected;
-                    //graphics.selectPiece(board, focusIndex);
-                    Mix_PlayChannel(-1, illegalMoveSound, 0);
+                    if (board.isKingInCheck(turn)) Mix_PlayChannel(-1, illegalMoveSound, 0);
                 }
             }
         }
         break;
 
     }
+}
 
-    if (state == GameState::Processing && focusIndex != -1 && targetIndex != -1) {
-        Piece * focusedPiece = board.board[focusIndex];
-        Piece * targetPiece = board.board[targetIndex];
-        if (board.validateMove(focusIndex, targetIndex)) {
+/* Handle all processes related to a move and checking for game end conditions */
+void ChessGame::handleProcessingMove() {
 
-            /* Animate the move if it was a click (not drag) */
-            if (wasClicked) {
-                graphics.animatePieceMoving(board, focusIndex, targetIndex);
-                wasClicked = false;
-            }
+    /* If one of the indexes is not valid, do not proceed with the handling */
+    if (!(Board::isValidIndex(focusIndex) && Board::isValidIndex(targetIndex)))
+        return;
 
-            /* Play the capture sound if it is an en-passant */
-            if(targetIndex == board.getEnPassantIndex())
-                Mix_PlayChannel(-1, captureSound, 0);
+    Piece * focusedPiece = board.board[focusIndex];
+    Piece * targetPiece = board.board[targetIndex];
+    if (board.validateMove(focusIndex, targetIndex)) {
 
-            /* Increment halfMoveClock */
-            halfMoveClock++;
-
-            /* Reset halfMoveClock if it is a pawn or a capture */
-            if (focusedPiece->getType() == PieceType::Pawn || (targetPiece != nullptr)) {
-                halfMoveClock = 0;
-            }
-
-            /* Register Move */
-            registerMove();
-
-            /* Execute the move on the logical board */
-            if (board.movePiece(focusIndex, targetIndex)) {
-                // Switch turns
-                turn = (turn == Color::White) ? Color::Black : Color::White;
-                // graphics.flipBoard();
-
-                /* Manage Sounds Effects :) */
-                if(board.isKingInCheck(turn)) {
-                    Mix_PlayChannel(-1, moveCheckSound, 0);
-                } else {
-                    if(targetPiece != nullptr) {
-                        Mix_PlayChannel(-1, captureSound, 0);
-                    } else if (abs(targetIndex - focusIndex) == 2 && focusedPiece->getType() == PieceType::King) {
-                        Mix_PlayChannel(-1, castleSound, 0);
-                    } else {
-                        Mix_PlayChannel(-1, moveSound, 0);
-                    }
-                }
-                // Update the board display
-                graphics.renderBoardWithPieces(board);
-            } else {
-                // Handle invalid move (should not happen as we validated earlier)
-                Mix_PlayChannel(-1, illegalMoveSound, 0);
-            }
-        } else {
-            Mix_PlayChannel(-1, illegalMoveSound, 0);
+        /* Animate the move if it was a click (not drag) */
+        if (wasClicked) {
+            graphics.animatePieceMoving(board, focusIndex, targetIndex); /* Try to remove from here! */
+            wasClicked = false;
         }
 
-        /* Increment Full Move Clock */
+        /* Play the capture sound if it is an en-passant */
+        if(targetIndex == board.getEnPassantIndex())
+            Mix_PlayChannel(-1, captureSound, 0);
+
+        /* Increment halfMoveClock */
+        halfMoveClock++;
+
+        /* Reset halfMoveClock if it is a pawn or a capture */
+        if (focusedPiece->getType() == PieceType::Pawn || (targetPiece != nullptr)) {
+            halfMoveClock = 0;
+        }
+
+        /* Register Move */
+        registerMove();
+
+        /* Execute the move on the logical board */
+        if (board.movePiece(focusIndex, targetIndex)) {
+
+            /* Switch turns */
+            turn = (turn == Color::White) ? Color::Black : Color::White;
+            board.validateAllNextPlayerMoves(turn);
+            board.countMoves(turn);
+
+            /* Manage Sounds Effects :) */
+            if(board.isKingInCheck(turn)) {
+                Mix_PlayChannel(-1, moveCheckSound, 0);
+            } else {
+                if(targetPiece != nullptr) {
+                    Mix_PlayChannel(-1, captureSound, 0);
+                } else if (abs(targetIndex - focusIndex) == 2 && focusedPiece->getType() == PieceType::King) {
+                    Mix_PlayChannel(-1, castleSound, 0);
+                } else {
+                    Mix_PlayChannel(-1, moveSound, 0);
+                }
+            }
+            // Update the board display
+            graphics.renderBoardWithPieces(board);
+        }
+    } else {
+        if (board.isKingInCheck(turn)) Mix_PlayChannel(-1, illegalMoveSound, 0);
+    }
+
+    /* Increment Full Move Clock */
         if (turn == Color::Black) {
             ++fullMoveClock;
         }
 
         /* Check if it is a Checkmate */
         if (!board.existLegalMoves(turn)) {
-                state = GameState::GameOver;
             state = GameState::GameOver;
         }
 
@@ -276,11 +273,31 @@ void ChessGame::handleEvent(SDL_Event & event) {
         std::cerr << moveList.back() << std::endl;
         focusIndex = -1;
         targetIndex = -1;
-        
-    }
-    
-    if(state == GameState::GameOver && !processGameOver) {
-        handleGameOver();
+}
+
+/* Handling GameOver. Prints the text into the screen, generates the PGN file and then resets the game */
+void ChessGame::handleGameOver() {
+    if (!processGameOver) {
+        std::string outcome;
+        std::string inMoveList;
+
+        if (board.isKingInCheck(turn)) {
+            outcome = (turn == Color::White) ? "Black Wins by Checkmate" : "White Wins by Checkmate";
+            inMoveList = (turn == Color::White) ? "0-1" : "1-0";
+        } else {
+            if(halfMoveClock == 50) {
+                outcome = "Draw by 50-Move Rule";
+            } else {
+                outcome = "Stalemate";
+            }
+            
+            inMoveList = "1/2-1/2";
+        }
+        graphics.printText(board, outcome);
+        moveList.push_back(inMoveList);
+        generatePGN(inMoveList);
+        SDL_Delay(3000);
+        processGameOver = true;
     }
 
 }
@@ -329,30 +346,6 @@ void ChessGame::registerMove() {
     move.append(Board::indexToAlgebraic(destIndex)); /* Add destination square*/
     moveList.push_back(move); /* add move to the list */
 
-}
-
-/* Handling GameOver. Prints the text into the screen, generates the PGN file and then resets the game */
-void ChessGame::handleGameOver() {
-    processGameOver = true;
-    std::string outcome;
-    std::string inMoveList;
-
-    if (board.isKingInCheck(turn)) {
-        outcome = (turn == Color::White) ? "Black Wins by Checkmate" : "White Wins by Checkmate";
-        inMoveList = (turn == Color::White) ? "0-1" : "1-0";
-    } else {
-        if(halfMoveClock == 50) {
-            outcome = "Draw by 50-Move Rule";
-        } else {
-            outcome = "Stalemate";
-        }
-        
-        inMoveList = "1/2-1/2";
-    }
-    graphics.printText(board, outcome);
-    moveList.push_back(inMoveList);
-    generatePGN(inMoveList);
-    SDL_Delay(5000);
 }
 
 /* Initialize a PGN File (Not the full implementation for now). Asked to DeepSeek */
