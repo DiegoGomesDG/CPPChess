@@ -5,26 +5,25 @@
 #include "Game.hpp"
 
 class ChessGUI {
+public:
+    ChessGUI(SDL_Window * window, SDL_Renderer * renderer, ChessGame * game);
+    ~ChessGUI();
 
-    private:
-        bool showDemoWindow;
-        bool showGameOver;
-        SDL_Window * mWindow;
-        SDL_Renderer * mRenderer;
-        ChessGame * mGame;
-    public:
-        ChessGUI(SDL_Window * window, SDL_Renderer * renderer, ChessGame * game);
-        ~ChessGUI();
+    /* Initialize imgui */
+    void init();
 
-        /* Initialize imgui */
-        void init();
+    /* Render */
+    void render();
 
-        /* Render */
-        void render();
+    /* Game Over Menu */
+    void gameOverMenu();
 
-        /* Game Over Menu */
-        void gameOverMenu();
-
+private:
+    bool showDemoWindow;
+    bool showGameOver;
+    SDL_Window * mWindow;
+    SDL_Renderer * mRenderer;
+    ChessGame * mGame;
 };
 
 #endif

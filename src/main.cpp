@@ -1,10 +1,9 @@
 /* Includes */
-#include "../include/Game.hpp"
-#include "../include/Graphics.hpp"
-#include "../include/ChessGUI.hpp"
+#include "Game.hpp"
+#include "Graphics.hpp"
+#include "ChessGUI.hpp"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
-#include <exception>
 
 /* find src include -name "*.cpp" -o -name "*.hpp" | xargs wc -l */
 
@@ -13,7 +12,7 @@
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif
 
-/* Main Code */
+/* Main Loop */
 int main(int argc, char * argv[]) {
 
     try {
@@ -34,6 +33,7 @@ int main(int argc, char * argv[]) {
         ImGuiIO& io = ImGui::GetIO(); (void)io; /* Get imgui i/o */
         bool quit = false; /* Flag */
         while (!quit) { /* Run loop till the program is terminated by the user*/
+            auto frameStart = std::chrono::high_resolution_clock::now();
 
             game.graphics.clearWindow(); /* Clear the window */
             game.handleRender(); /* Render the board */
@@ -42,10 +42,14 @@ int main(int argc, char * argv[]) {
             SDL_Event event;
             while (SDL_PollEvent(&event)) {
                 ImGui_ImplSDL2_ProcessEvent(&event);
-                if (event.type == SDL_QUIT)
+                if (event.type == SDL_QUIT) {
                     quit = true;
-                if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+                    break;
+                }
+                if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
                     quit = true;
+                    break;
+                }
                 if (io.WantCaptureKeyboard) continue; /* Ignore events which are directed to the GUI*/
                 if (io.WantCaptureMouse) continue;
                 
@@ -55,8 +59,10 @@ int main(int argc, char * argv[]) {
             game.handleStatesProcessing();
             gui.render(); /* Render the GUI on top of the Board */
             SDL_RenderPresent(renderer); /* Update the Window */
+
         }
     }
+
     catch(const std::runtime_error& e) {
         std::cerr << "[ERROR] Fatal error: " << e.what() << std::endl;
         return 1;
@@ -64,8 +70,8 @@ int main(int argc, char * argv[]) {
 
     catch(...) {
         std::cerr << "[ERROR] Unknown error caught!" << std::endl;
+        return 2;
     }
     
-
     return 0;
 }

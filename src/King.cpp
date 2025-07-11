@@ -13,31 +13,31 @@
 
 /* Constructor */
 King::King(Color color, int position, Board * board, bool hasMoved) : Piece(color, PieceType::King, position, board, hasMoved) {
-    kingSideCastle = false;
-    queenSideCastle = false;
-    inCheck = false;
+    mKingSideCastle = false;
+    mQueenSideCastle = false;
+    mInCheck = false;
 }
 
 /* Clones the piece to a new address */
 Piece * King::clone(Board* newBoard) const {
     King * copy = new King(getColor(), getPosition(), newBoard, getHasMoved());
-    copy->kingSideCastle = kingSideCastle;
-    copy->queenSideCastle = queenSideCastle;
-    copy->inCheck = inCheck;
+    copy->mKingSideCastle = mKingSideCastle;
+    copy->mQueenSideCastle = mQueenSideCastle;
+    copy->mInCheck = mInCheck;
     copy->validMoves = validMoves;
 
     return static_cast<Piece *>(copy);
 }
 
 /* ##### Static Variables ##### */
-std::array<const int, 8> King::offsets = {-9, -8, -7, -1, +1, +7, +8, +9};
+std::array<const int, 8> King::mOffsets = {-9, -8, -7, -1, +1, +7, +8, +9};
 
 void King::computeMoves() {
 
     validMoves.clear();
     int fromIndex = getPosition();
 
-    for (int offset : offsets) {
+    for (int offset : mOffsets) {
         int targetIndex = fromIndex + offset;
         int currentCol = fromIndex % 8;
         int nextCol = targetIndex % 8;
@@ -46,14 +46,14 @@ void King::computeMoves() {
         /* Prevent Wrap Around*/
         int colDiff = std::abs(nextCol - currentCol);
         
-        SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
+        SquareStatus status = mBoard->getSquareStatus(fromIndex, targetIndex);
 
         if ((status == SquareStatus::Empty || status == SquareStatus::Enemy) && colDiff <= 1) {
-            if (getColor() == Color::White && !board->blackAttackBoard[targetIndex]) {
+            if (getColor() == Color::White && !mBoard->blackAttackBoard[targetIndex]) {
                 validMoves.push_back(targetIndex);
             }
                 
-            if (getColor() == Color::Black && !board->whiteAttackBoard[targetIndex]) {
+            if (getColor() == Color::Black && !mBoard->whiteAttackBoard[targetIndex]) {
                 validMoves.push_back(targetIndex);
             }
                 
@@ -61,42 +61,42 @@ void King::computeMoves() {
         
     }
 
-    if(!hasMoved) computeCastling();
+    if(!mHasMoved) computeCastling();
     else {
-        kingSideCastle = false;
-        queenSideCastle = false;
+        mKingSideCastle = false;
+        mQueenSideCastle = false;
     }
 }
 
 /* Computes the possibility of castle, according to the official chess rules. If the castle is possible, it will add it to the move list, otherwise not. If the piece already moved, it immediatelly returns false as the King has no rights to move */
 void King::computeCastling() {
     int kingSquare = (getColor() == Color::White) ? 4 : 60;
-    if (hasMoved) return; /* If the king moved, then it is invalid*/
-    if (board->isKingInCheck(getColor())) return; /* If king is in check, you cannot castle*/
+    if (mHasMoved) return; /* If the king moved, then it is invalid*/
+    if (mBoard->isKingInCheck(getColor())) return; /* If king is in check, you cannot castle*/
 
     /* Generate and Validate a King Side Castle */
-    if (kingSideCastle) {
+    if (mKingSideCastle) {
         bool canCastle = true;
-        Piece * rook = (getColor() == Color::White) ? board->board[7] : board->board[63];
+        Piece * rook = (getColor() == Color::White) ? mBoard->board[7] : mBoard->board[63];
         if (rook == nullptr) canCastle = false;
         if (rook && rook->getHasMoved()) {
-            kingSideCastle = false;
+            mKingSideCastle = false;
             canCastle = false;
         }
 
         /* Check if they are free */
-        if (board->board[kingSquare+1] || board->board[kingSquare+2]) canCastle = false;
+        if (mBoard->board[kingSquare+1] || mBoard->board[kingSquare+2]) canCastle = false;
 
         /* Is the King in Check */
-        if (inCheck) canCastle = false;
+        if (mInCheck) canCastle = false;
 
         /* If the in between squares and final square are not attacked by enemy pieces */
         for (int i = 1; i <= 3; ++i) {
             int offset = kingSquare + i;
-            if (color == Color::White) {
-                if(board->blackAttackBoard[offset]) canCastle = false;
+            if (mColor == Color::White) {
+                if(mBoard->blackAttackBoard[offset]) canCastle = false;
             } else {
-                if(board->whiteAttackBoard[offset]) canCastle = false;
+                if(mBoard->whiteAttackBoard[offset]) canCastle = false;
             }
         }
 
@@ -104,28 +104,28 @@ void King::computeCastling() {
             validMoves.push_back(kingSquare + 2);
     }
 
-    if (queenSideCastle) {
-        Piece * rook = (getColor() == Color::White) ? board->board[0] : board->board[56];
+    if (mQueenSideCastle) {
+        Piece * rook = (getColor() == Color::White) ? mBoard->board[0] : mBoard->board[56];
         bool canCastle = true;
         if (rook == nullptr) canCastle = false;
         if (rook && rook->getHasMoved()) {
-            queenSideCastle = false;
+            mQueenSideCastle = false;
             canCastle = false;
         }
 
         /* Check if they are free */
-        if (board->board[kingSquare-1] || board->board[kingSquare-2] || board->board[kingSquare-3]) canCastle = false;
+        if (mBoard->board[kingSquare-1] || mBoard->board[kingSquare-2] || mBoard->board[kingSquare-3]) canCastle = false;
 
         /* Is the King in Check */
-        if (inCheck) canCastle = false;
+        if (mInCheck) canCastle = false;
 
         /* If the in between squares and final square are not attacked by enemy pieces */
         for (int i = 1; i <= 3; ++i) {
             int offset = kingSquare - i;
-            if (color == Color::White) {
-                if(board->blackAttackBoard[offset]) canCastle = false;
+            if (mColor == Color::White) {
+                if(mBoard->blackAttackBoard[offset]) canCastle = false;
             } else {
-                if(board->whiteAttackBoard[offset]) canCastle = false;
+                if(mBoard->whiteAttackBoard[offset]) canCastle = false;
             }
         }
         if (canCastle)

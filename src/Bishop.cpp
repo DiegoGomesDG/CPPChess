@@ -13,7 +13,7 @@
 */
 
 /* ##### Static Variables ##### */
-std::array<const int, 4> Bishop::offsets = {-9, -7, +7, +9};
+std::array<const int, 4> Bishop::mOffsets = {-9, -7, +7, +9};
 
 /* Clone method to allow the piece to be copied into a new memory location. Useful for creating a copy of Board */
 Piece * Bishop::clone(Board* newBoard) const {
@@ -28,7 +28,7 @@ void Bishop::computeMoves() {
     int fromIndex = getPosition();
 
     /* Generate all pseudolegal moves (without considering checks, pins, etc) */
-    for (int offset : offsets) {
+    for (int offset : mOffsets) {
         int targetIndex = fromIndex;
         while(true) {
             int currentCol = targetIndex % 8;
@@ -42,7 +42,7 @@ void Bishop::computeMoves() {
             if (colDiff != 1 && colDiff != 0) break;
 
             
-            SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
+            SquareStatus status = mBoard->getSquareStatus(fromIndex, targetIndex);
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {   

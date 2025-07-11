@@ -8,26 +8,26 @@
 class Board;
 
 class King : public Piece {
-    private:
-        bool kingSideCastle;
-        bool queenSideCastle;
-        bool inCheck;
-        static std::array<const int, 8> offsets;
-    public:
-        King(Color color, int position, Board * board, bool hasMoved);
-        ~King() {}
-        Piece * clone(Board* newBoard) const override;
+public:
+    King(Color color, int position, Board * board, bool hasMoved);
+    ~King() {}
+    Piece * clone(Board* newBoard) const override;
 
-        void setKingSideCastleRight(bool state) {kingSideCastle = state;}
-        void setQueenSideCastleRight(bool state) {queenSideCastle = state;}
-        void setCheck(bool state) {inCheck = state;}
-        
-        bool isChecked() const {return inCheck;}
-        bool hasCastleRights() const {return kingSideCastle || queenSideCastle;}
+    void setKingSideCastleRight(bool state) { mKingSideCastle = state; }
+    void setQueenSideCastleRight(bool state) { mQueenSideCastle = state; }
+    void setCheck(bool state) { mInCheck = state; }
+    
+    bool isChecked() const { return mInCheck; }
+    bool hasCastleRights() const { return mKingSideCastle || mQueenSideCastle; }
 
-        void computeMoves() override;
-        void computeCastling();
+    void computeMoves() override;
+    void computeCastling();
 
+private:
+    bool mKingSideCastle;
+    bool mQueenSideCastle;
+    bool mInCheck;
+    static std::array<const int, 8> mOffsets;
 };
 
 #endif

@@ -12,7 +12,7 @@
 */
 
 /* ##### Static Variables ##### */
-std::array<const int, 8> Queen::offsets = {-9, -8, -7, -1, +1, +7, +8, +9};
+std::array<const int, 8> Queen::mOffsets = {-9, -8, -7, -1, +1, +7, +8, +9};
 
 /* Clone method to allow the piece to be copied into a new memory location. Useful for creating a copy of Board */
 Piece * Queen::clone(Board* newBoard) const {
@@ -27,7 +27,7 @@ void Queen::computeMoves() {
     int fromIndex = getPosition();
     std::vector<int> pseudoMoves;
 
-    for (int offset : offsets) {
+    for (int offset : mOffsets) {
         int targetIndex = fromIndex;
         while(true) {
             int currentCol = targetIndex % 8;
@@ -41,7 +41,7 @@ void Queen::computeMoves() {
                 std::abs(nextCol - currentCol) > 1) break;
 
             
-            SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
+            SquareStatus status = mBoard->getSquareStatus(fromIndex, targetIndex);
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {

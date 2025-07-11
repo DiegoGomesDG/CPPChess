@@ -13,10 +13,10 @@
 */
 
 /* ##### Static Variables ##### */
-std::array<const int, 8> Knight::offsets = {-17, -15, -10, -6, 6, 10, 15, 17};
+std::array<const int, 8> Knight::mOffsets = {-17, -15, -10, -6, 6, 10, 15, 17};
 
 Piece * Knight::clone(Board* newBoard) const {
-    Piece * copy = new Knight(color, position, newBoard);
+    Piece * copy = new Knight(mColor, mPosition, newBoard);
     copy->validMoves = validMoves;
     return copy;
 }
@@ -29,7 +29,7 @@ void Knight::computeMoves() {
     int fromRow = fromIndex / 8;
     int fromCol = fromIndex % 8;
 
-    for (int offset : offsets) {
+    for (int offset : mOffsets) {
         int targetIndex = fromIndex + offset;
         if (targetIndex < 0 || targetIndex >= 64)
             continue;
@@ -44,7 +44,7 @@ void Knight::computeMoves() {
         if (!((rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2)))
             continue;  // Invalid — wrapped around
         
-        SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
+        SquareStatus status = mBoard->getSquareStatus(fromIndex, targetIndex);
         if (status == SquareStatus::Empty || status == SquareStatus::Enemy) {
             validMoves.push_back(targetIndex);
         }

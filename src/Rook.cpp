@@ -12,7 +12,7 @@
 */
 
 /* ##### Static Variables ##### */
-std::array<const int, 4> Rook::offsets = {-8, -1, +1, +8};
+std::array<const int, 4> Rook::mOffsets = {-8, -1, +1, +8};
 
 /* Clone method to allow the piece to be copied into a new memory location. Useful for creating a copy of Board */
 Piece * Rook::clone(Board* newBoard) const {
@@ -27,7 +27,7 @@ void Rook::computeMoves() {
     int fromIndex = getPosition();
     std::vector<int> pseudoMoves;
 
-    for (int offset : offsets) {
+    for (int offset : mOffsets) {
         int targetIndex = fromIndex;
         while(true) {
             int currentCol = targetIndex % 8;
@@ -40,7 +40,7 @@ void Rook::computeMoves() {
             if ((offset == -1 || offset == 1) && std::abs(nextCol - currentCol) != 1) break;
 
             /* Compares the origin square to the destination square and determines if it is Empty, Invalid, Friendly or Enemy */
-            SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
+            SquareStatus status = mBoard->getSquareStatus(fromIndex, targetIndex);
             if (status == SquareStatus::Empty) {
                 validMoves.push_back(targetIndex);
             } else if (status == SquareStatus::Enemy) {

@@ -25,13 +25,13 @@ void Pawn::computeMoves() {
 
     /* Single move forward */
     int targetIndex = fromIndex + forward;
-    SquareStatus status = board->getSquareStatus(fromIndex, targetIndex);
+    SquareStatus status = mBoard->getSquareStatus(fromIndex, targetIndex);
     if (status == SquareStatus::Empty && Board::isValidIndex(targetIndex)) {
         validMoves.push_back(targetIndex);
 
         /* Double move forward */
         targetIndex = fromIndex + doubleForward;
-        status = board->getSquareStatus(fromIndex, targetIndex);
+        status = mBoard->getSquareStatus(fromIndex, targetIndex);
         if (status == SquareStatus::Empty && (Board::isValidIndex(targetIndex)) && !getHasMoved()) {
             validMoves.push_back(targetIndex);
         }
@@ -42,11 +42,11 @@ void Pawn::computeMoves() {
     int nextCol = targetIndex % 8;
     int colDiff = std::abs(nextCol - currentCol);
 
-    status = board->getSquareStatus(fromIndex, targetIndex);
+    status = mBoard->getSquareStatus(fromIndex, targetIndex);
     if ((status == SquareStatus::Enemy) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
-    if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == board->getEnPassantIndex()) {
+    if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == mBoard->getEnPassantIndex()) {
         validMoves.push_back(targetIndex);
     }
 
@@ -55,11 +55,11 @@ void Pawn::computeMoves() {
     nextCol = targetIndex % 8;
     colDiff = std::abs(nextCol - currentCol);
 
-    status = board->getSquareStatus(fromIndex, targetIndex);
+    status = mBoard->getSquareStatus(fromIndex, targetIndex);
     if ((status == SquareStatus::Enemy) && colDiff == 1) {
         validMoves.push_back(targetIndex);
     }
-    if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == board->getEnPassantIndex()) {
+    if ((status == SquareStatus::Empty) && colDiff == 1 && targetIndex == mBoard->getEnPassantIndex()) {
         validMoves.push_back(targetIndex);
     }
 

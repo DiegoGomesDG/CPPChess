@@ -11,39 +11,37 @@ enum class Color {White, Black};
 enum class PieceType {Empty, Pawn, Knight, Bishop, Rook, Queen, King};
 
 class Piece {
+public:
+    std::vector<int> validMoves;
+    
+    virtual Piece * clone(Board* newBoard) const = 0;
+    virtual void computeMoves() = 0;
+    bool isValidMove(int toIndex);
 
-    protected:
-        int position;
-        Color color;
-        PieceType type;
-        Board * board;
-        bool hasMoved;
+    /* Virtual Destructor */
+    virtual ~Piece() {}
 
-        /* Protected Constructor*/
-        Piece(Color color, PieceType type, int position, Board * board, bool hasMoved) : position(position), color(color), type(type), board(board), hasMoved(hasMoved) {}
+    /* Getters */
+    int getPosition() const { return mPosition; }
+    int getRow() const { return mPosition / 8; }
+    int getColumn() const { return mPosition % 8; }
+    bool getHasMoved() const { return mHasMoved; }
+    Color getColor() const { return mColor; }
+    PieceType getType() const { return mType; }
 
-    public:
-        std::vector<int> validMoves;
-        
-        virtual Piece * clone(Board* newBoard) const = 0;
-        virtual void computeMoves() = 0;
-        bool isValidMove(int toIndex);
+    /* Setters */
+    void setPosition(int pos) { mPosition = pos; }
+    void setHasMoved(int state) { mHasMoved = state; }
 
-        /* Virtual Destructor */
-        virtual ~Piece() {}
+protected:
+    int mPosition;
+    Color mColor;
+    PieceType mType;
+    Board * mBoard;
+    bool mHasMoved;
 
-        /* Getters */
-        int getPosition() const {return position;}
-        int getRow() const {return position / 8;}
-        int getColumn() const {return position % 8;}
-        bool getHasMoved() const {return hasMoved;}
-        Color getColor() const {return color;}
-        PieceType getType() const {return type;}
-
-        /* Setters */
-        void setPosition(int pos) {position = pos;}
-        void setHasMoved(int state) {hasMoved = state;}
-
+    /* Protected Constructor*/
+    Piece(Color color, PieceType type, int position, Board * board, bool hasMoved) : mPosition(position), mColor(color), mType(type), mBoard(board), mHasMoved(hasMoved) {}
 };
 
 

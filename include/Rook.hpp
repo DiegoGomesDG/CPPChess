@@ -8,13 +8,14 @@
 class Board;
 
 class Rook : public Piece {
-    private:
-        static std::array<const int, 4> offsets;
-    public:
-        Rook(Color color, int position, Board * board) : Piece(color, PieceType::Rook, position, board, true) {}
-        ~Rook() {}
-        void computeMoves() override;
-        Piece * clone(Board* newBoard) const override;
+public:
+    Rook(Color color, int position, Board * board) : Piece(color, PieceType::Rook, position, board, true) {}
+    ~Rook() {}
+    void computeMoves() override;
+    Piece * clone(Board* newBoard) const override;
+    
+private:
+    static std::array<const int, 4> mOffsets;
 };
 
 #endif

@@ -50,7 +50,7 @@ bool Texture::loadTexture(std::string path, SDL_Renderer * renderer) {
 }
 
 /* Creates a Texture according to a given font, text and color */
-bool Texture::loadFromRenderedText(SDL_Renderer * renderer, TTF_Font * font, std::string textureText, SDL_Color textColor) {
+bool Texture::loadFromRenderedText(SDL_Renderer * renderer, TTF_Font * font, const std::string & textureText, SDL_Color textColor) {
 	//Get rid of preexisting texture
 	free();
 

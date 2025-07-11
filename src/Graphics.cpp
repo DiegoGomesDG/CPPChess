@@ -18,16 +18,16 @@
 /* ##### Window properties according to the size of the board ##### */
 const int ROW = 8;
 const int COL = 8;
-const int SQUARE_SIZE = 90; /* Suggested: 90 */
-const int BORDER_SIZE = 50; /* Suggested: 45 */
+int SQUARE_SIZE = 90; /* Suggested: 90 */
+int BORDER_SIZE = 50; /* Suggested: 45 */
 
-const int LEFT_BORDER_SIZE = 50;
-const int RIGHT_BORDER_SIZE = 50;
-const int TOP_BORDER_SIZE = 50;
-const int BOTTOM_BORDER_SIZE = 50;
+int LEFT_BORDER_SIZE = 50;
+int RIGHT_BORDER_SIZE = 50;
+int TOP_BORDER_SIZE = 50;
+int BOTTOM_BORDER_SIZE = 50;
 
-const int WIN_WIDTH = COL * SQUARE_SIZE + LEFT_BORDER_SIZE + RIGHT_BORDER_SIZE;
-const int WIN_HEIGHT = ROW * SQUARE_SIZE + TOP_BORDER_SIZE + BOTTOM_BORDER_SIZE;
+int WIN_WIDTH = COL * SQUARE_SIZE + 2 * BORDER_SIZE;
+int WIN_HEIGHT = ROW * SQUARE_SIZE + 2 * BORDER_SIZE;
 int physW, physH; /* Logical Size */
 float scaleX, scaleY; /* Scaling Factor */
 
@@ -47,14 +47,14 @@ int durationMs = 150;
 const int fps = 120;
 
 /* ##### Global Textures ##### */
-Texture whitePieces[7];
-Texture blackPieces[7];
+std::array<Texture, 7> whitePieces;
+std::array<Texture, 7> blackPieces;
 Texture moveDot;
 Texture kingInCheck;
 Texture capture;
 Texture hoverSquare;
-Texture boardLetters[8];
-Texture boardNumbers[8];
+std::array<Texture, 8> boardLetters;
+std::array<Texture, 8> boardNumbers;
 
 /* ##### Sound Effects ##### */
 Mix_Chunk * gameStartSound = nullptr;
@@ -76,7 +76,7 @@ TTF_Font * statusFont;
 /* ##### Static Variables ##### */
 //bool Graphics::instantiated = false;
 
-/* Graphics Constructor. It initializes all the SDL Subsystems, taking care of the MacBook Pro 14" High DPI Display and also precomputes the squares of the board */
+/* Graphics Constructor. It initializes all the SDL Subsystems, taking care of the MacBook Pro 14" High DPI Display and also precomputes the mSquares of the board */
 Graphics::Graphics() {
     
     //assert(!instantiated && "More than one instance of the Class Graphics is not allowed!");
@@ -97,29 +97,29 @@ Graphics::Graphics() {
     #endif
 
     /* Create WINDOW */
-    window = SDL_CreateWindow("CPPChess", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
+    mWindow = SDL_CreateWindow("CPPChess", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
     
-    if (window == nullptr) {
+    if (mWindow == nullptr) {
         std::cerr << "Window could not be created! SDL Error: " << SDL_GetError(); // Implement error handling
         SDL_Quit();
         throw std::runtime_error(std::string("SDL Window could not be created! SDL Error: ") + SDL_GetError());
     }
 
     /* Get Retina Scaling Factors - HIGH DPI Macbook Screen - Scale of 2.0 */
-    SDL_GL_GetDrawableSize(window, &physW, &physH);
+    SDL_GL_GetDrawableSize(mWindow, &physW, &physH);
     scaleX = physW / static_cast<float>(WIN_WIDTH); // logical width
     scaleY = physH / static_cast <float> (WIN_HEIGHT);  // logical height
 
     /* Create RENDERER for the Window*/
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    SDL_RenderSetIntegerScale(renderer, SDL_TRUE);
-    if(renderer == nullptr) {
+    mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    SDL_RenderSetIntegerScale(mRenderer, SDL_TRUE);
+    if(mRenderer == nullptr) {
         std::cerr << "Renderer could not be created! SDL Error: " << SDL_GetError();
         SDL_Quit();
         throw std::runtime_error(std::string("SDL Renderer could not be created! SDL Error: ") + SDL_GetError());
     }
-    SDL_RenderSetScale(renderer, scaleX, scaleY);
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_RenderSetScale(mRenderer, scaleX, scaleY);
+    SDL_SetRenderDrawColor(mRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
     /* Initialize PNG Loading */
     int imgFlags = IMG_INIT_PNG;
@@ -140,7 +140,7 @@ Graphics::Graphics() {
         throw std::runtime_error(std::string("SDL_TTF could not initialize! SDL_TTF Error: ") + TTF_GetError());
     }
 
-    /* Initialize the Board Squares */
+    /* Initialize the Board mSquares */
     for (int row = 0; row < ROW; ++row) {
         for (int col = 0; col < COL; ++col) {
             int index = row * COL + col;
@@ -148,7 +148,7 @@ Graphics::Graphics() {
             // SDL y-axis is top-down, so flip row to draw bottom-up
             int sdlRow = (ROW - 1) - row;
 
-            squares[index] = {LEFT_BORDER_SIZE - 1 + col * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+            mSquares[index] = {LEFT_BORDER_SIZE - 1 + col * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
         }
     }
 
@@ -164,17 +164,17 @@ Graphics::Graphics() {
     blackAttack = false;
 
     /* Initialise ChessGUI pointer to null */ 
-    gui = nullptr;
+    mGuiPtr = nullptr;
     
 }
 
 /* Graphics class destructor. It deallocates all SDL subsystem textures, chunks and windows, then quits the subsystems */
 Graphics::~Graphics() {
 	//Destroy window	
-	if (window != nullptr)
-	    SDL_DestroyWindow(window);
-    if (renderer != nullptr)    
-        SDL_DestroyRenderer(renderer);
+	if (mWindow != nullptr)
+	    SDL_DestroyWindow(mWindow);
+    if (mRenderer != nullptr)    
+        SDL_DestroyRenderer(mRenderer);
 
     /* Free Sound Effects */
     Mix_FreeChunk(gameStartSound);
@@ -198,7 +198,7 @@ Graphics::~Graphics() {
     illegalMoveSound = nullptr;
 
     /* Set the Pointer to null*/
-    gui = nullptr;
+    mGuiPtr = nullptr;
 
 	/* Quit SDL subsystems */
     //instantiated = false;
@@ -219,78 +219,78 @@ bool Graphics::loadMedia() {
     /* ##### White Pieces ##### */
     /* loadTexture returns true if it is successful, false otherwise. So if it is not true, it means it failed */
 
-    if(!whitePieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/pieces/default/white/WhitePawn.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!whitePieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/pieces/default/white/WhitePawn.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/pieces/default/white/WhiteKnight.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!whitePieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/pieces/default/white/WhiteKnight.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/pieces/default/white/WhiteBishop.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!whitePieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/pieces/default/white/WhiteBishop.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/pieces/default/white/WhiteRook.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!whitePieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/pieces/default/white/WhiteRook.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/pieces/default/white/WhiteQueen.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!whitePieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/pieces/default/white/WhiteQueen.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!whitePieces[static_cast<int>(PieceType::King)].loadTexture("../assets/pieces/default/white/WhiteKing.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!whitePieces[static_cast<int>(PieceType::King)].loadTexture("../assets/pieces/default/white/WhiteKing.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
     
     /* ##### Black Pieces ##### */
-    if(!blackPieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/pieces/default/black/BlackPawn.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!blackPieces[static_cast<int>(PieceType::Pawn)].loadTexture("../assets/pieces/default/black/BlackPawn.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/pieces/default/black/BlackKnight.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!blackPieces[static_cast<int>(PieceType::Knight)].loadTexture("../assets/pieces/default/black/BlackKnight.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/pieces/default/black/BlackBishop.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!blackPieces[static_cast<int>(PieceType::Bishop)].loadTexture("../assets/pieces/default/black/BlackBishop.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/pieces/default/black/BlackRook.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!blackPieces[static_cast<int>(PieceType::Rook)].loadTexture("../assets/pieces/default/black/BlackRook.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/pieces/default/black/BlackQueen.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!blackPieces[static_cast<int>(PieceType::Queen)].loadTexture("../assets/pieces/default/black/BlackQueen.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
-    if(!blackPieces[static_cast<int>(PieceType::King)].loadTexture("../assets/pieces/default/black/BlackKing.png", renderer)) {
-        std::cerr << "Failed to load texture! ";
+    if(!blackPieces[static_cast<int>(PieceType::King)].loadTexture("../assets/pieces/default/black/BlackKing.png", mRenderer)) {
+        std::cerr << "Failed to load texture! " << std::endl;
         success = false;
     }
 
     /* ##### Move Dot ##### */
-    if(!moveDot.loadTexture("../assets/MoveDot.png", renderer)) {
-        std::cerr << "Failed to load texture!";
+    if(!moveDot.loadTexture("../assets/MoveDot.png", mRenderer)) {
+        std::cerr << "Failed to load texture!" << std::endl;
         success = false;
     }
 
     /* ##### King in Check Highlight ##### */
-    if(!kingInCheck.loadTexture("../assets/KingInCheck.png", renderer)) {
-        std::cerr << "Failed to load texture!";
+    if(!kingInCheck.loadTexture("../assets/KingInCheck.png", mRenderer)) {
+        std::cerr << "Failed to load texture!" << std::endl;
         success = false;
     }
 
     /* ##### Capture a Piece Highlight ##### */
-    if(!capture.loadTexture("../assets/Capture.png", renderer)) {
-        std::cerr << "Failed to load texture!";
+    if(!capture.loadTexture("../assets/Capture.png", mRenderer)) {
+        std::cerr << "Failed to load texture!" << std::endl;
         success = false;
     }
 
     /* ##### Square that appears when the mouse is hovering */
-    if(!hoverSquare.loadTexture("../assets/HoverSquare.png", renderer)) {
-        std::cerr << "Failed to load texture!";
+    if(!hoverSquare.loadTexture("../assets/HoverSquare.png", mRenderer)) {
+        std::cerr << "Failed to load texture!" << std::endl;
         success = false;
     }
 
@@ -362,27 +362,30 @@ bool Graphics::loadMedia() {
     for (int i = 0; i < ROW; ++i) {
         char fileChar = 'a' + i;
         std::string fileStr(1, fileChar);
-        boardLetters[i].loadFromRenderedText(renderer, boardFont, fileStr, BOARD_TEXT);
+        boardLetters[i].loadFromRenderedText(mRenderer, boardFont, fileStr, BOARD_TEXT);
     }
 
     for (int i = 0; i < ROW; ++i) {
         char fileChar = '1' + i;
         std::string ranksStr(1, fileChar);
-        boardNumbers[i].loadFromRenderedText(renderer, boardFont, ranksStr, BOARD_TEXT);
+        boardNumbers[i].loadFromRenderedText(mRenderer, boardFont, ranksStr, BOARD_TEXT);
     }
 
-    return success;
+    if (success)
+        return true;
+    else throw std::runtime_error("Game resources could not be open");
+    
 }
 
 /* Clears all elements of the Window */
 void Graphics::clearWindow() {
-    SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
-    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(mRenderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
+    SDL_RenderClear(mRenderer);
 }
 
 /* Updates the Window */
 void Graphics::updateWindow() {
-    SDL_RenderPresent(renderer);
+    SDL_RenderPresent(mRenderer);
 }
 
 /* Renders a board square with the correct color, according to the row and column */
@@ -390,15 +393,15 @@ void Graphics::renderBoardSquare(int col, int row) {
     if (col < 0 || row < 0 || col >= COL || row >= ROW) return;   
 
     int index = Board::squareToIndex(row, col);
-    const SDL_Rect& fillRect = squares[index];
+    const SDL_Rect& fillRect = mSquares[index];
 
     if ((row + col) % 2 != 0) {
-        SDL_SetRenderDrawColor(renderer, WHITE_SQUARE.r, WHITE_SQUARE.g, WHITE_SQUARE.b, WHITE_SQUARE.a);
+        SDL_SetRenderDrawColor(mRenderer, WHITE_SQUARE.r, WHITE_SQUARE.g, WHITE_SQUARE.b, WHITE_SQUARE.a);
     } else {
-        SDL_SetRenderDrawColor(renderer, BLACK_SQUARE.r, BLACK_SQUARE.g, BLACK_SQUARE.b, BLACK_SQUARE.a);
+        SDL_SetRenderDrawColor(mRenderer, BLACK_SQUARE.r, BLACK_SQUARE.g, BLACK_SQUARE.b, BLACK_SQUARE.a);
     }
 
-    SDL_RenderFillRect(renderer, &fillRect);
+    SDL_RenderFillRect(mRenderer, &fillRect);
 }
 
 /* Renders the letters and numbers on the side of the board, which is used for notation */
@@ -407,20 +410,20 @@ void Graphics::renderMarkings() {
     if(!isBoardFlipped) {
         /* File Markings */
         for (int i = 0; i < COL; ++i) {
-            boardLetters[i].renderText(renderer, BOTTOM_BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BOTTOM_BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+            boardLetters[i].renderText(mRenderer, BOTTOM_BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BOTTOM_BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
         }
         /* Row Markings */
         for (int i = 0; i < ROW; ++i) {
-            boardNumbers[ROW - 1 - i].renderText(renderer, static_cast<int>(BORDER_SIZE/2) - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
+            boardNumbers[ROW - 1 - i].renderText(mRenderer, static_cast<int>(BORDER_SIZE/2) - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
         }
     } else { /* Flipped Markings*/
 
         for (int i = 0; i < COL; ++i) {
-            boardLetters[COL - 1 - i].renderText(renderer, BOTTOM_BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
+            boardLetters[COL - 1 - i].renderText(mRenderer, BOTTOM_BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardLetters[i].getWidth()/(2*scaleX)), WIN_HEIGHT - BORDER_SIZE + boardLetters[5].getWidth()/(2*scaleX), scaleY);
         }
         /* Row Markings */
         for (int i = 0; i < ROW; ++i) {
-            boardNumbers[i].renderText(renderer, static_cast<int>(BORDER_SIZE/2) - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
+            boardNumbers[i].renderText(mRenderer, static_cast<int>(BORDER_SIZE/2) - boardNumbers[i].getWidth()/(2*scaleX), BORDER_SIZE - 1 + (SQUARE_SIZE * i) + (static_cast<int>(SQUARE_SIZE/2) - boardNumbers[i].getHeight()/(2*scaleY)), scaleY);
         }
 
 
@@ -430,8 +433,8 @@ void Graphics::renderMarkings() {
 
 /* Renders the full board together with the markings */
 void Graphics::renderBoard() {
-    SDL_SetRenderDrawColor(renderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
-    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(mRenderer, BKGD_COLOR.r, BKGD_COLOR.g, BKGD_COLOR.b, BKGD_COLOR.a);
+    SDL_RenderClear(mRenderer);
 
     for (int col = 0; col < COL; ++col) {
 		for (int row = 0; row < ROW; ++row) {
@@ -456,27 +459,27 @@ void Graphics::renderPiece(const Board & board, int index) {
         piece = board.board[index]->getType();
         int pieceID = static_cast<int>(piece);
 
-        const SDL_Rect& dstRect = squares[index];
+        const SDL_Rect& dstRect = mSquares[index];
 
         if(piece == PieceType::King) {
             King * king = static_cast<King *>(board.board[index]);
             if (king->isChecked()) {
-                kingInCheck.renderTexture(renderer, dstRect.x, dstRect.y);
+                kingInCheck.renderTexture(mRenderer, dstRect.x, dstRect.y);
             }
         }
         
         if (color == Color::White)
-            whitePieces[pieceID].renderTexture(renderer, dstRect.x, dstRect.y);
+            whitePieces[pieceID].renderTexture(mRenderer, dstRect.x, dstRect.y);
         
         if (color == Color::Black)
-            blackPieces[pieceID].renderTexture(renderer, dstRect.x, dstRect.y);
+            blackPieces[pieceID].renderTexture(mRenderer, dstRect.x, dstRect.y);
     }
 }
 
 /* Renders the marking which represents the King in check */
 void Graphics::renderKingInCheck(int index) {
-    const SDL_Rect dstRect = squares[index];
-    kingInCheck.renderTexture(renderer, dstRect.x, dstRect.y);
+    const SDL_Rect dstRect = mSquares[index];
+    kingInCheck.renderTexture(mRenderer, dstRect.x, dstRect.y);
     
 }
 
@@ -490,21 +493,21 @@ void Graphics::renderPieces(const Board & board) {
 /* Highlights a square according to the index */
 void Graphics::highlightSquare(int index) {
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, HIGHLIGHT.r, HIGHLIGHT.g, HIGHLIGHT.b, HIGHLIGHT.a);
-	SDL_RenderFillRect(renderer, &squares[index]);
+    SDL_SetRenderDrawColor(mRenderer, HIGHLIGHT.r, HIGHLIGHT.g, HIGHLIGHT.b, HIGHLIGHT.a);
+	SDL_RenderFillRect(mRenderer, &mSquares[index]);
     //SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 }
 
 /* Places a dot in the provided index */
 void Graphics::highlightMove(int index) {
-    const SDL_Rect dstRect = squares[index];
-    moveDot.renderTexture(renderer, dstRect.x, dstRect.y);
+    const SDL_Rect dstRect = mSquares[index];
+    moveDot.renderTexture(mRenderer, dstRect.x, dstRect.y);
 }
 
 /* Places a marking of capture on the specified index */
 void Graphics::highlightCapture(int index) {
-    const SDL_Rect dstRect = squares[index];
-    capture.renderTexture(renderer, dstRect.x, dstRect.y);
+    const SDL_Rect dstRect = mSquares[index];
+    capture.renderTexture(mRenderer, dstRect.x, dstRect.y);
 }
 
 /* Highlights the possible moves of a piece in the board, according to the given index. The possible moves are generated by the respective pieces. Check the class Board methods to find more information about the Move Generation mechanism */
@@ -547,15 +550,15 @@ void Graphics::renderHoverSquare(int mouseX, int mouseY) {
     int hoverCol, hoverRow;
     
     if(mouseX < (WIN_WIDTH - RIGHT_BORDER_SIZE) && (mouseX > LEFT_BORDER_SIZE) && mouseY < (WIN_HEIGHT - BOTTOM_BORDER_SIZE) && (mouseY > TOP_BORDER_SIZE)) {
-        hoverCol = (mouseX - BORDER_SIZE) / SQUARE_SIZE;
-        hoverRow = (mouseY - BORDER_SIZE) / SQUARE_SIZE;
+        hoverCol = (mouseX - LEFT_BORDER_SIZE) / SQUARE_SIZE;
+        hoverRow = (mouseY - TOP_BORDER_SIZE) / SQUARE_SIZE;
     } else {
         hoverCol = -1;
         hoverRow = -1;
     }
 
     if (hoverCol > -1 && hoverRow > -1)
-        hoverSquare.renderTexture(renderer, LEFT_BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, TOP_BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
+        hoverSquare.renderTexture(mRenderer, LEFT_BORDER_SIZE - 1 + SQUARE_SIZE * hoverCol, TOP_BORDER_SIZE - 1 + SQUARE_SIZE * hoverRow);
 }
 
 
@@ -579,10 +582,10 @@ void Graphics::renderDraggedPiece(const Board & board, int index, int mouseX, in
     highlightPossibleMoves(board, index);
 
     if (color == Color::White)
-		whitePieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
+		whitePieces[pieceID].renderTexture(mRenderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
 			
 	if (color == Color::Black)
-		blackPieces[pieceID].renderTexture(renderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
+		blackPieces[pieceID].renderTexture(mRenderer, mouseX - SQUARE_SIZE/2, mouseY - SQUARE_SIZE/2);
 
     //updateWindow();
 }
@@ -592,10 +595,10 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
     int fromCol = Board::indexToColumn(fromIndex);
     int fromRow = Board::indexToRow(fromIndex);
 
-    int startX = squares[fromIndex].x;
-    int startY = squares[fromIndex].y;
-    int endX = squares[toIndex].x;
-    int endY = squares[toIndex].y;
+    int startX = mSquares[fromIndex].x;
+    int startY = mSquares[fromIndex].y;
+    int endX = mSquares[toIndex].x;
+    int endY = mSquares[toIndex].y;
 
     Piece* movingPiece = board.board[fromIndex];
     if (!movingPiece) return;
@@ -620,12 +623,12 @@ void Graphics::animatePieceMoving(const Board & board, int fromIndex, int toInde
 
         // Draw the moving piece at its interpolated position
         if (movingPiece->getColor() == Color::White)
-            whitePieces[static_cast<int>(movingPiece->getType())].renderTexture(renderer, currentX, currentY);
+            whitePieces[static_cast<int>(movingPiece->getType())].renderTexture(mRenderer, currentX, currentY);
         else
-            blackPieces[static_cast<int>(movingPiece->getType())].renderTexture(renderer, currentX, currentY);
+            blackPieces[static_cast<int>(movingPiece->getType())].renderTexture(mRenderer, currentX, currentY);
 
         /* Render GUI while animating */
-        gui->render();
+        mGuiPtr->render();
         updateWindow();
         SDL_Delay(frameDelay);
     }
@@ -641,13 +644,13 @@ void Graphics::printText(const Board & board, std::string & text) {
 
     /* Then, create the texture and render the text*/
     Texture renderText;
-    renderText.loadFromRenderedText(renderer, boardFont, text, STATUS_TEXT);
+    renderText.loadFromRenderedText(mRenderer, boardFont, text, STATUS_TEXT);
 
     /* Center text*/
     int x = (WIN_WIDTH - renderText.getWidth())/2;
     int y = (WIN_HEIGHT - renderText.getHeight())/2;
 
-    renderText.renderText(renderer, x, y);
+    renderText.renderText(mRenderer, x, y);
     updateWindow();
 }
 
@@ -663,11 +666,11 @@ void Graphics::flipBoard() {
                 int flippedRow = row;
                 int flippedCol = (COL - 1) - col;
 
-                squares[index] = {LEFT_BORDER_SIZE - 1 + flippedCol * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + flippedRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+                mSquares[index] = {LEFT_BORDER_SIZE - 1 + flippedCol * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + flippedRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
             } else {
                 int sdlRow = (ROW - 1) - row;
     
-                squares[index] = {LEFT_BORDER_SIZE - 1 + col * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
+                mSquares[index] = {LEFT_BORDER_SIZE - 1 + col * SQUARE_SIZE, TOP_BORDER_SIZE - 1 + sdlRow * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE};
             }
         }
     }
